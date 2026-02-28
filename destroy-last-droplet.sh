@@ -1,6 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Load optional .env file so shared config (like STATE_FILE) is reused.
+# If the file is missing, script defaults are used.
+ENV_FILE="${ENV_FILE:-./.env}"
+if [[ -f "$ENV_FILE" ]]; then
+  set -a
+  # shellcheck disable=SC1090
+  source "$ENV_FILE"
+  set +a
+fi
+
 STATE_FILE="${STATE_FILE:-./.do-droplet.json}"
 
 need_cmd() { command -v "$1" >/dev/null 2>&1 || { echo "Missing command: $1"; exit 1; }; }

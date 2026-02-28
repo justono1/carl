@@ -1,6 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Load optional .env file so config can live in the repo without
+# exporting variables on every command.
+# If the file is missing, defaults below are used.
+ENV_FILE="${ENV_FILE:-./.env}"
+if [[ -f "$ENV_FILE" ]]; then
+  set -a
+  # shellcheck disable=SC1090
+  source "$ENV_FILE"
+  set +a
+fi
+
 # ---- Config ----
 DROPLET_NAME="${DROPLET_NAME:-devbox-1}"
 REGION="${REGION:-nyc3}"
