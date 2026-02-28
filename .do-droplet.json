@@ -1,0 +1,11 @@
+{
+  "droplet": {
+    "id": "554999792",
+    "name": "devbox-1",
+    "region": "nyc3",
+    "image": "ubuntu-24-04-x64",
+    "size": "s-1vcpu-2gb",
+    "ip": "167.172.21.78",
+    "created_at": "2026-02-28T05:04:40Z"
+  }
+}

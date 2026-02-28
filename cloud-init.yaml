@@ -1,0 +1,39 @@
+#cloud-config
+
+package_update: true
+package_upgrade: false
+
+packages:
+  - git
+  - curl
+  - wget
+  - unzip
+  - ca-certificates
+  - gnupg
+  - lsb-release
+  - fail2ban
+
+write_files:
+  - path: /etc/ssh/sshd_config.d/99-hardening.conf
+    permissions: "0644"
+    content: |
+      PasswordAuthentication no
+      PermitRootLogin prohibit-password
+      ChallengeResponseAuthentication no
+      KbdInteractiveAuthentication no
+      X11Forwarding no
+
+  - path: /etc/dev-bootstrap/README.txt
+    permissions: "0644"
+    content: |
+      Place secrets under:
+        /etc/dev-bootstrap/secrets/
+      Recommended:
+        - root:root ownership
+        - chmod 600 on secret files
+
+runcmd:
+  - mkdir -p /etc/dev-bootstrap/secrets
+  - chmod 700 /etc/dev-bootstrap/secrets
+  - systemctl enable --now fail2ban
+  # Intentionally: no ssh restart, no ufw enable during bootstrap iteration
