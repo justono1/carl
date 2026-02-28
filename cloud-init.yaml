@@ -4,13 +4,32 @@ package_update: true
 package_upgrade: false
 
 packages:
-  - git
+  - ca-certificates
   - curl
   - wget
   - unzip
-  - ca-certificates
+  - zip
+  - rsync
+  - file
+  - less
+  - vim
+  - bash
+  - git
+  - openssh-client
+  - ripgrep
+  - build-essential
+  - clang
+  - lldb
+  - lld
+  - cmake
+  - ninja-build
+  - pkg-config
+  - python3
+  - python3-pip
+  - python3-venv
   - gnupg
   - lsb-release
+  - util-linux
   - fail2ban
 
 write_files:
@@ -23,17 +42,127 @@ write_files:
       KbdInteractiveAuthentication no
       X11Forwarding no
 
-  - path: /etc/dev-bootstrap/README.txt
+  - path: /etc/profile.d/dev-bootstrap.sh
     permissions: "0644"
     content: |
-      Place secrets under:
-        /etc/dev-bootstrap/secrets/
-      Recommended:
-        - root:root ownership
-        - chmod 600 on secret files
+      export CODEX_HOME=/root/.codex
+      export PATH="/root/.local/bin:${PATH}"
+
+      if [ -n "@GIT_USER_NAME_B64@" ]; then
+        export GIT_USER_NAME="$(printf '%s' '@GIT_USER_NAME_B64@' | base64 -d)"
+        export GIT_AUTHOR_NAME="$GIT_USER_NAME"
+        export GIT_COMMITTER_NAME="$GIT_USER_NAME"
+      fi
+
+      if [ -n "@GIT_USER_EMAIL_B64@" ]; then
+        export GIT_USER_EMAIL="$(printf '%s' '@GIT_USER_EMAIL_B64@' | base64 -d)"
+        export GIT_AUTHOR_EMAIL="$GIT_USER_EMAIL"
+        export GIT_COMMITTER_EMAIL="$GIT_USER_EMAIL"
+      fi
+
+  - path: /usr/local/sbin/dev-bootstrap.sh
+    permissions: "0755"
+    content: |
+      #!/usr/bin/env bash
+      set -euo pipefail
+
+      log() {
+        echo "[dev-bootstrap] $*"
+      }
+
+      NODE_MAJOR="@NODE_MAJOR@"
+      CODEX_VERSION="@CODEX_VERSION@"
+      BR_VERSION="@BR_VERSION@"
+      PNPM_VERSION="@PNPM_VERSION@"
+      PLAYWRIGHT_MCP_VERSION="@PLAYWRIGHT_MCP_VERSION@"
+      PLAYWRIGHT_VERSION="@PLAYWRIGHT_VERSION@"
+      GIT_USER_NAME_B64="@GIT_USER_NAME_B64@"
+      GIT_USER_EMAIL_B64="@GIT_USER_EMAIL_B64@"
+
+      decode_b64() {
+        if [[ -z "$1" ]]; then
+          return 0
+        fi
+        printf '%s' "$1" | base64 -d
+      }
+
+      GIT_USER_NAME="$(decode_b64 "$GIT_USER_NAME_B64")"
+      GIT_USER_EMAIL="$(decode_b64 "$GIT_USER_EMAIL_B64")"
+
+      export DEBIAN_FRONTEND=noninteractive
+
+      log "Preparing workspace and root tool directories"
+      mkdir -p /workspace /workspace/main
+      mkdir -p /root/.codex /root/.cache /root/.config /root/.local/share /root/.local/bin /root/.npm
+      chmod 700 /root/.codex /root/.cache /root/.config /root/.local /root/.local/share /root/.npm
+
+      if [[ -n "${GIT_USER_NAME}" && -n "${GIT_USER_EMAIL}" ]]; then
+        log "Configuring root git identity from injected environment values"
+        git config --global user.name "${GIT_USER_NAME}"
+        git config --global user.email "${GIT_USER_EMAIL}"
+      else
+        log "Skipping git identity config (GIT_USER_NAME/GIT_USER_EMAIL not both provided)"
+      fi
+
+      log "Installing Node.js ${NODE_MAJOR}.x from NodeSource"
+      mkdir -p /etc/apt/keyrings
+      curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key \
+        | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
+      chmod 0644 /etc/apt/keyrings/nodesource.gpg
+      echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_${NODE_MAJOR}.x nodistro main" \
+        > /etc/apt/sources.list.d/nodesource.list
+      apt-get update
+      apt-get install -y --no-install-recommends nodejs
+
+      log "Installing codex CLI (${CODEX_VERSION})"
+      npm install -g "@openai/codex@${CODEX_VERSION}"
+      codex --version
+
+      log "Installing pnpm (${PNPM_VERSION})"
+      npm install -g "pnpm@${PNPM_VERSION}"
+      pnpm --version
+
+      log "Installing Playwright tooling (mcp=${PLAYWRIGHT_MCP_VERSION}, playwright=${PLAYWRIGHT_VERSION})"
+      npm install -g "@playwright/mcp@${PLAYWRIGHT_MCP_VERSION}" "playwright@${PLAYWRIGHT_VERSION}"
+      npx --yes playwright install --with-deps chromium
+      npx --yes playwright --version
+
+      log "Resolving Chromium symlink under /root/.local/bin/chromium"
+      CHROME_BIN="$(find /root/.cache/ms-playwright -type f -name chrome -path "*/chromium-*/*" | head -n1 || true)"
+      if [[ -z "${CHROME_BIN}" ]]; then
+        echo "Could not locate Playwright Chromium binary under /root/.cache/ms-playwright" >&2
+        exit 1
+      fi
+      CHROME_DIR="$(dirname "${CHROME_BIN}")"
+      ln -sfn "${CHROME_DIR}" /root/.local/playwright-chrome
+      ln -sfn "${CHROME_BIN}" /root/.local/bin/chromium
+      /root/.local/bin/chromium --version
+
+      log "Installing br (${BR_VERSION})"
+      arch="$(dpkg --print-architecture)"
+      case "${arch}" in
+        arm64) br_arch="arm64" ;;
+        amd64) br_arch="amd64" ;;
+        *)
+          echo "Unsupported architecture for br: ${arch}" >&2
+          exit 1
+          ;;
+      esac
+
+      br_tag="v${BR_VERSION}"
+      br_tarball="br-${br_tag}-linux_${br_arch}.tar.gz"
+      tmp_dir="$(mktemp -d)"
+      curl -fsSL "https://github.com/Dicklesworthstone/beads_rust/releases/download/${br_tag}/${br_tarball}" -o "${tmp_dir}/br.tar.gz"
+      tar -xzf "${tmp_dir}/br.tar.gz" -C "${tmp_dir}"
+      br_bin="$(find "${tmp_dir}" -type f -name br | head -n1)"
+      test -n "${br_bin}"
+      install -m 0755 "${br_bin}" /usr/local/bin/br
+      rm -rf "${tmp_dir}"
+      br --version
+
+      log "Bootstrap complete"
 
 runcmd:
-  - mkdir -p /etc/dev-bootstrap/secrets
-  - chmod 700 /etc/dev-bootstrap/secrets
   - systemctl enable --now fail2ban
-  # Intentionally: no ssh restart, no ufw enable during bootstrap iteration
+  - /usr/local/sbin/dev-bootstrap.sh
+  # Intentionally: no ssh restart during bootstrap iteration

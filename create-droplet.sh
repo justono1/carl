@@ -19,6 +19,16 @@ IMAGE="${IMAGE:-ubuntu-24-04-x64}"
 SIZE="${SIZE:-s-1vcpu-2gb}"
 CLOUD_INIT_FILE="${CLOUD_INIT_FILE:-./cloud-init.yaml}"
 
+# Cloud-init template variables (all optional; defaults match the Dockerfile intent)
+NODE_MAJOR="${NODE_MAJOR:-24}"
+CODEX_VERSION="${CODEX_VERSION:-latest}"
+BR_VERSION="${BR_VERSION:-0.1.12}"
+PNPM_VERSION="${PNPM_VERSION:-latest}"
+PLAYWRIGHT_MCP_VERSION="${PLAYWRIGHT_MCP_VERSION:-latest}"
+PLAYWRIGHT_VERSION="${PLAYWRIGHT_VERSION:-latest}"
+GIT_USER_NAME="${GIT_USER_NAME:-}"
+GIT_USER_EMAIL="${GIT_USER_EMAIL:-}"
+
 # State file written by this script (used by destroy script)
 STATE_FILE="${STATE_FILE:-./.do-droplet.json}"
 
@@ -30,9 +40,39 @@ SSH_KEY_ID="${SSH_KEY_ID:-}"
 
 need_cmd() { command -v "$1" >/dev/null 2>&1 || { echo "Missing command: $1"; exit 1; }; }
 
+escape_sed_replacement() {
+  printf '%s' "$1" | sed -e 's/[\/&]/\\&/g'
+}
+
+b64_no_newline() {
+  printf '%s' "$1" | base64 | tr -d '\n'
+}
+
+render_cloud_init_template() {
+  local template_file output_file git_name_b64 git_email_b64
+  template_file="$1"
+  output_file="$2"
+
+  git_name_b64="$(b64_no_newline "$GIT_USER_NAME")"
+  git_email_b64="$(b64_no_newline "$GIT_USER_EMAIL")"
+
+  sed \
+    -e "s/@NODE_MAJOR@/$(escape_sed_replacement "$NODE_MAJOR")/g" \
+    -e "s/@CODEX_VERSION@/$(escape_sed_replacement "$CODEX_VERSION")/g" \
+    -e "s/@BR_VERSION@/$(escape_sed_replacement "$BR_VERSION")/g" \
+    -e "s/@PNPM_VERSION@/$(escape_sed_replacement "$PNPM_VERSION")/g" \
+    -e "s/@PLAYWRIGHT_MCP_VERSION@/$(escape_sed_replacement "$PLAYWRIGHT_MCP_VERSION")/g" \
+    -e "s/@PLAYWRIGHT_VERSION@/$(escape_sed_replacement "$PLAYWRIGHT_VERSION")/g" \
+    -e "s/@GIT_USER_NAME_B64@/$(escape_sed_replacement "$git_name_b64")/g" \
+    -e "s/@GIT_USER_EMAIL_B64@/$(escape_sed_replacement "$git_email_b64")/g" \
+    "$template_file" > "$output_file"
+}
+
 need_cmd doctl
 need_cmd jq
 need_cmd nc
+need_cmd sed
+need_cmd base64
 
 # Ensure doctl is authenticated
 if ! doctl account get >/dev/null 2>&1; then
@@ -40,11 +80,19 @@ if ! doctl account get >/dev/null 2>&1; then
   exit 1
 fi
 
-# Ensure cloud-init exists
+# Resolve user-data file:
+# - Render CLOUD_INIT_FILE to a timestamped /tmp file
+# - Pass rendered file to doctl
+rendered_cloud_init_file=""
+
 if [[ ! -f "$CLOUD_INIT_FILE" ]]; then
-  echo "Cloud-init file not found: $CLOUD_INIT_FILE"
+  echo "Cloud-init source file not found: $CLOUD_INIT_FILE"
   exit 1
 fi
+rendered_ts="$(date -u +"%Y%m%dT%H%M%SZ")"
+rendered_cloud_init_file="/tmp/cloud-init.rendered.${rendered_ts}.$$.yaml"
+render_cloud_init_template "$CLOUD_INIT_FILE" "$rendered_cloud_init_file"
+user_data_file="$rendered_cloud_init_file"
 
 # Resolve SSH key id
 if [[ -z "$SSH_KEY_ID" ]]; then
@@ -73,7 +121,9 @@ echo "  region:    $REGION"
 echo "  image:     $IMAGE"
 echo "  size:      $SIZE"
 echo "  ssh key:   $SSH_KEY_ID"
-echo "  user-data: $CLOUD_INIT_FILE"
+echo "  user-data: $user_data_file"
+echo "  source:    $CLOUD_INIT_FILE"
+echo "  rendered:  kept at $rendered_cloud_init_file"
 echo "  state:     $STATE_FILE"
 echo
 
@@ -82,7 +132,7 @@ create_json="$(doctl compute droplet create "$DROPLET_NAME" \
   --image "$IMAGE" \
   --size "$SIZE" \
   --ssh-keys "$SSH_KEY_ID" \
-  --user-data-file "$CLOUD_INIT_FILE" \
+  --user-data-file "$user_data_file" \
   --enable-monitoring \
   --wait \
   --output json)"
