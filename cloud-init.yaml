@@ -60,6 +60,13 @@ write_files:
         export GIT_COMMITTER_EMAIL="$GIT_USER_EMAIL"
       fi
 
+  - path: /etc/fail2ban/jail.d/sshd-local.conf
+    permissions: "0644"
+    content: |
+      [sshd]
+      enabled = true
+      backend = systemd
+
   - path: /usr/local/sbin/dev-bootstrap.sh
     permissions: "0755"
     content: |
@@ -70,20 +77,35 @@ write_files:
         echo "[dev-bootstrap] $*"
       }
 
-      NODE_MAJOR="@NODE_MAJOR@"
-      CODEX_VERSION="@CODEX_VERSION@"
-      BR_VERSION="@BR_VERSION@"
-      PNPM_VERSION="@PNPM_VERSION@"
-      PLAYWRIGHT_MCP_VERSION="@PLAYWRIGHT_MCP_VERSION@"
-      PLAYWRIGHT_VERSION="@PLAYWRIGHT_VERSION@"
-      GIT_USER_NAME_B64="@GIT_USER_NAME_B64@"
-      GIT_USER_EMAIL_B64="@GIT_USER_EMAIL_B64@"
+      # cloud-init may execute with a minimal environment where HOME is unset.
+      # git --global requires HOME to resolve ~/.gitconfig.
+      export HOME="${HOME:-/root}"
+      export USER="${USER:-root}"
+
+      resolve_template_value() {
+        local value="$1"
+        local default_value="$2"
+        if [[ -z "${value}" || "${value}" =~ ^@[^@]+@$ ]]; then
+          printf '%s' "${default_value}"
+          return 0
+        fi
+        printf '%s' "${value}"
+      }
+
+      NODE_MAJOR="$(resolve_template_value "@NODE_MAJOR@" "24")"
+      CODEX_VERSION="$(resolve_template_value "@CODEX_VERSION@" "latest")"
+      BR_VERSION="$(resolve_template_value "@BR_VERSION@" "0.1.12")"
+      PNPM_VERSION="$(resolve_template_value "@PNPM_VERSION@" "latest")"
+      PLAYWRIGHT_MCP_VERSION="$(resolve_template_value "@PLAYWRIGHT_MCP_VERSION@" "latest")"
+      PLAYWRIGHT_VERSION="$(resolve_template_value "@PLAYWRIGHT_VERSION@" "latest")"
+      GIT_USER_NAME_B64="$(resolve_template_value "@GIT_USER_NAME_B64@" "")"
+      GIT_USER_EMAIL_B64="$(resolve_template_value "@GIT_USER_EMAIL_B64@" "")"
 
       decode_b64() {
         if [[ -z "$1" ]]; then
           return 0
         fi
-        printf '%s' "$1" | base64 -d
+        printf '%s' "$1" | base64 -d 2>/dev/null
       }
 
       GIT_USER_NAME="$(decode_b64 "$GIT_USER_NAME_B64")"
@@ -98,8 +120,10 @@ write_files:
 
       if [[ -n "${GIT_USER_NAME}" && -n "${GIT_USER_EMAIL}" ]]; then
         log "Configuring root git identity from injected environment values"
-        git config --global user.name "${GIT_USER_NAME}"
-        git config --global user.email "${GIT_USER_EMAIL}"
+        if ! git config --file /root/.gitconfig user.name "${GIT_USER_NAME}" \
+          || ! git config --file /root/.gitconfig user.email "${GIT_USER_EMAIL}"; then
+          log "Warning: failed to write /root/.gitconfig; continuing bootstrap"
+        fi
       else
         log "Skipping git identity config (GIT_USER_NAME/GIT_USER_EMAIL not both provided)"
       fi
@@ -163,6 +187,6 @@ write_files:
       log "Bootstrap complete"
 
 runcmd:
-  - systemctl enable --now fail2ban
   - /usr/local/sbin/dev-bootstrap.sh
+  - systemctl enable --now fail2ban || (journalctl -u fail2ban --no-pager -n 100 || true)
   # Intentionally: no ssh restart during bootstrap iteration
