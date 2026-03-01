@@ -1,0 +1,16 @@
+tap "homebrew/core"
+
+# Runtime/toolchain foundation
+brew "node"
+brew "python"
+
+# Dev tooling and shell utilities
+brew "jq"
+brew "ripgrep"
+brew "wget"
+brew "rsync"
+brew "cmake"
+brew "ninja"
+brew "pkg-config"
+brew "bash"
+brew "gnu-sed"

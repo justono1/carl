@@ -1,0 +1,17 @@
+name: Checksum Guard
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  checksum-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify macOS bootstrap checksums
+        run: |
+          set -euo pipefail
+          ./macos/update-checksums.sh --check
