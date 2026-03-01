@@ -132,7 +132,7 @@ See [docs/secrets.md](docs/secrets.md) for full workflows, macOS VM guidance, an
 ## macOS Bootstrap (arm64)
 
 This path is intentionally simple: one manual command to bootstrap tooling on a fresh Apple Silicon Mac.
-No SSH hardening, fail2ban, or background management agents are installed in this flow.
+The script can enable macOS Remote Login (SSH sharing) during setup. No SSH hardening, fail2ban, or background management agents are installed in this flow.
 
 ### Option A: Run from local checkout
 
@@ -165,6 +165,9 @@ BOOTSTRAP_SOURCE_REF="<commit-sha>" bash /tmp/bootstrap-mac.sh
 - Script installs `br` (beads) from GitHub release assets using the pinned rendered version.
 - Toolchain verification is required before completion (`brew`, `node`, `npm`, `pnpm`, `codex`, `playwright`, `br`).
 - Script prompts for Git `user.name` and `user.email` in an interactive terminal session.
+- Script prompts to enable Remote Login (SSH sharing); default is Yes (`[Y/n]`).
+- Set `ENABLE_REMOTE_LOGIN_DEFAULT=0` to make the Remote Login prompt default to No (`[y/N]`).
+- If Remote Login enablement fails, bootstrap logs a warning and continues; manual fallback is `sudo systemsetup -setremotelogin on`.
 - `BOOTSTRAP_SOURCE_REF` is optional and only used for marker metadata.
 - Marker file is written to `~/.bootstrap_done` with timestamp + metadata; installs remain idempotent and do not rely on marker state alone.
 
