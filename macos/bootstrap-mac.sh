@@ -120,7 +120,7 @@ brew_bundle_apply() {
   if brew bundle check --file="${TMP_BREWFILE}" >/dev/null 2>&1; then
     log "Homebrew package set already satisfied."
   else
-    brew bundle install --file="${TMP_BREWFILE}" --no-lock
+    brew bundle install --file="${TMP_BREWFILE}"
   fi
 }
 
