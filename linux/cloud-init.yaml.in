@@ -92,12 +92,12 @@ write_files:
         printf '%s' "${value}"
       }
 
-      NODE_MAJOR="$(resolve_template_value "24" "24")"
-      CODEX_VERSION="$(resolve_template_value "0.104.0" "0.104.0")"
-      BR_VERSION="$(resolve_template_value "0.1.12" "0.1.12")"
-      PNPM_VERSION="$(resolve_template_value "10.30.1" "10.30.1")"
-      PLAYWRIGHT_MCP_VERSION="$(resolve_template_value "0.0.68" "0.0.68")"
-      PLAYWRIGHT_VERSION="$(resolve_template_value "1.58.2" "1.58.2")"
+      NODE_MAJOR="$(resolve_template_value "@NODE_MAJOR@" "@NODE_MAJOR@")"
+      CODEX_VERSION="$(resolve_template_value "@CODEX_VERSION@" "@CODEX_VERSION@")"
+      BR_VERSION="$(resolve_template_value "@BR_VERSION@" "@BR_VERSION@")"
+      PNPM_VERSION="$(resolve_template_value "@PNPM_VERSION@" "@PNPM_VERSION@")"
+      PLAYWRIGHT_MCP_VERSION="$(resolve_template_value "@PLAYWRIGHT_MCP_VERSION@" "@PLAYWRIGHT_MCP_VERSION@")"
+      PLAYWRIGHT_VERSION="$(resolve_template_value "@PLAYWRIGHT_VERSION@" "@PLAYWRIGHT_VERSION@")"
       GIT_USER_NAME_B64="$(resolve_template_value "@GIT_USER_NAME_B64@" "")"
       GIT_USER_EMAIL_B64="$(resolve_template_value "@GIT_USER_EMAIL_B64@" "")"
 

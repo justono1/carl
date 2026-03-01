@@ -16,7 +16,7 @@ It already handles DigitalOcean droplet provisioning and macOS baseline bootstra
 ## What CARL Does Today
 
 - Creates a DigitalOcean droplet via `doctl`
-- Renders `linux/cloud-init.yaml` from template variables (version pins + optional Git identity)
+- Uses generated bootstrap artifacts rendered from canonical version pins in top-level `.env`
 - Bootstraps core tooling on first boot (Node, Codex CLI, pnpm, Playwright tooling, `br`, build tools, etc.)
 - Bootstraps a fresh macOS arm64 environment with Homebrew + npm-global CLI tooling
 - Applies basic hardening (SSH settings + fail2ban)
@@ -36,13 +36,16 @@ The intended direction for this repository includes:
 
 - `digitalOcean/create-droplet.sh`: create and initialize a droplet
 - `digitalOcean/destroy-last-droplet.sh`: tear down the droplet recorded in state
-- `linux/cloud-init.yaml`: machine bootstrap and runtime setup
-- `macos/bootstrap-mac.sh`: idempotent macOS arm64 bootstrap script (embedded package set)
+- `.env`: canonical pinned tool versions + default droplet/runtime settings
+- `linux/cloud-init.yaml.in`: cloud-init template
+- `linux/cloud-init.yaml`: rendered cloud-init artifact consumed by droplet provisioning
+- `macos/bootstrap-mac.sh.in`: macOS bootstrap template
+- `macos/bootstrap-mac.sh`: rendered macOS bootstrap artifact
+- `scripts/render-bootstrap-artifacts.sh`: renders Linux/macOS artifacts from top-level `.env`
 - `macos/update-checksums.sh`: helper for regenerating/verifying checksum files
 - `macos/bootstrap-mac.sh.sha256`: checksum file for pinned-source bootstrap verification
 - `.github/workflows/checksums.yml`: CI guard for checksum drift
 - `.github/workflows/secret-scan.yml`: CI secret scanning with gitleaks
-- `.env.sample`: optional configuration overrides
 
 ## Prerequisites
 
@@ -60,10 +63,10 @@ doctl auth init
 
 Run these commands from the repository root.
 
-1. (Optional) Create local overrides:
+1. Review/edit top-level `.env` if needed:
 
 ```bash
-cp .env.sample .env
+${EDITOR:-vi} .env
 ```
 
 2. Create a droplet:
@@ -99,10 +102,10 @@ curl -fsSL "https://raw.githubusercontent.com/<owner>/<repo>/<commit-sha>/macos/
 bash /tmp/bootstrap-mac.sh
 ```
 
-Optional (only if you want repo `.env` overrides and source metadata in the marker file):
+Optional (only if you want source metadata in the marker file):
 
 ```bash
-ENV_FILE="/absolute/path/to/<repo>/.env" BOOTSTRAP_SOURCE_REF="<commit-sha>" bash /tmp/bootstrap-mac.sh
+BOOTSTRAP_SOURCE_REF="<commit-sha>" bash /tmp/bootstrap-mac.sh
 ```
 
 ### macOS Bootstrap Notes
@@ -111,22 +114,24 @@ ENV_FILE="/absolute/path/to/<repo>/.env" BOOTSTRAP_SOURCE_REF="<commit-sha>" bas
 - Script installs Xcode Command Line Tools and Homebrew if needed.
 - The recommended command downloads the script to `/tmp` and executes it (instead of `curl | bash`) so interactive install prompts behave correctly.
 - Homebrew package list is embedded in the script (single fixed profile; no alternate Brewfile path).
-- Script installs `br` (beads) from GitHub release assets using `BR_VERSION`.
+- Script installs `br` (beads) from GitHub release assets using the pinned rendered version.
 - Toolchain verification is required before completion (`brew`, `node`, `npm`, `pnpm`, `codex`, `playwright`, `br`).
-- Local checkout execution auto-loads `<repo>/.env` if present.
-- Pinned `/tmp` execution can still use repo config by passing `ENV_FILE=/absolute/path/to/<repo>/.env`.
+- Script prompts for Git `user.name` and `user.email` in an interactive terminal session.
 - `BOOTSTRAP_SOURCE_REF` is optional and only used for marker metadata.
 - Marker file is written to `~/.bootstrap_done` with timestamp + metadata; installs remain idempotent and do not rely on marker state alone.
 
-### Checksum Maintenance
+### Artifact Rendering
 
-After editing `macos/bootstrap-mac.sh`, refresh checksum before push:
+After editing `.env`, `linux/cloud-init.yaml.in`, or `macos/bootstrap-mac.sh.in`, render artifacts and refresh checksum:
 
 ```bash
-./macos/update-checksums.sh
+./scripts/render-bootstrap-artifacts.sh
 ```
 
-To verify current files match committed checksums:
+`digitalOcean/create-droplet.sh` expects `linux/cloud-init.yaml` to be rendered already and will fail if non-Git placeholders remain.
+It also requires an interactive terminal to collect Git `user.name` and `user.email` before provisioning.
+
+To verify current files match committed checksum:
 
 ```bash
 ./macos/update-checksums.sh --check
@@ -134,15 +139,16 @@ To verify current files match committed checksums:
 
 ## Configuration
 
-Use `.env` to override defaults from `.env.sample`, including:
+Top-level `.env` controls:
 
 - droplet settings (`DROPLET_NAME`, `REGION`, `IMAGE`, `SIZE`)
-- bootstrap/tool versions (`NODE_MAJOR`, `CODEX_VERSION`, `BR_VERSION`, `PNPM_VERSION`, `PLAYWRIGHT_MCP_VERSION`, `PLAYWRIGHT_VERSION`)
-- optional Git identity injection (`GIT_USER_NAME`, `GIT_USER_EMAIL`)
 - state file and SSH key selection (`STATE_FILE`, `SSH_KEY_ID`, `SSH_KEY_NAME_MATCH`)
+
+Bootstrap/tool versions are pinned in top-level `.env` and compiled into rendered artifacts.
 
 ## Notes
 
-- `.env` is optional; scripts run with built-in defaults.
-- `digitalOcean/create-droplet.sh` writes a rendered cloud-init file to `/tmp` for traceability.
+- Top-level `.env` is the canonical config source for rendering bootstrap artifacts.
+- Top-level `.env` is non-secret by policy; store secrets/tool auth outside this repo.
+- `digitalOcean/create-droplet.sh` writes a rendered cloud-init file to `/tmp` for traceability (Git identity injection only).
 - This README intentionally documents both present functionality and future intent.

@@ -13,8 +13,7 @@ to_repo_root_path() {
   fi
 }
 
-# Load optional .env file so config can live in the repo without
-# exporting variables on every command.
+# Load optional .env file for local machine/runtime settings.
 # If the file is missing, defaults below are used.
 ENV_FILE="${ENV_FILE:-$REPO_ROOT/.env}"
 ENV_FILE="$(to_repo_root_path "$ENV_FILE")"
@@ -32,16 +31,8 @@ IMAGE="${IMAGE:-ubuntu-24-04-x64}"
 SIZE="${SIZE:-s-1vcpu-2gb}"
 CLOUD_INIT_FILE="${CLOUD_INIT_FILE:-$REPO_ROOT/linux/cloud-init.yaml}"
 CLOUD_INIT_FILE="$(to_repo_root_path "$CLOUD_INIT_FILE")"
-
-# Cloud-init template variables (all optional; defaults match the Dockerfile intent)
-NODE_MAJOR="${NODE_MAJOR:-24}"
-CODEX_VERSION="${CODEX_VERSION:-latest}"
-BR_VERSION="${BR_VERSION:-0.1.12}"
-PNPM_VERSION="${PNPM_VERSION:-latest}"
-PLAYWRIGHT_MCP_VERSION="${PLAYWRIGHT_MCP_VERSION:-latest}"
-PLAYWRIGHT_VERSION="${PLAYWRIGHT_VERSION:-latest}"
-GIT_USER_NAME="${GIT_USER_NAME:-}"
-GIT_USER_EMAIL="${GIT_USER_EMAIL:-}"
+GIT_USER_NAME=""
+GIT_USER_EMAIL=""
 
 # State file written by this script (used by destroy script)
 STATE_FILE="${STATE_FILE:-$REPO_ROOT/.do-droplet.json}"
@@ -63,6 +54,66 @@ b64_no_newline() {
   printf '%s' "$1" | base64 | tr -d '\n'
 }
 
+prompt_required_value() {
+  local label current value
+  label="$1"
+  current="$2"
+
+  while true; do
+    if [[ -n "$current" ]]; then
+      read -r -p "${label} [${current}]: " value
+      value="${value:-$current}"
+    else
+      read -r -p "${label}: " value
+    fi
+
+    if [[ -n "$value" ]]; then
+      printf '%s' "$value"
+      return 0
+    fi
+
+    echo "${label} is required." >&2
+  done
+}
+
+resolve_git_identity() {
+  local default_name default_email
+
+  if [[ ! -t 0 ]]; then
+    echo "Interactive terminal required to collect Git identity." >&2
+    echo "Run this script in a TTY session." >&2
+    exit 1
+  fi
+
+  default_name=""
+  default_email=""
+  if command -v git >/dev/null 2>&1; then
+    default_name="$(git config --global --get user.name 2>/dev/null || true)"
+    default_email="$(git config --global --get user.email 2>/dev/null || true)"
+  fi
+
+  echo
+  echo "Git identity is required for cloud bootstrap."
+  GIT_USER_NAME="$(prompt_required_value "Git user.name" "$default_name")"
+  GIT_USER_EMAIL="$(prompt_required_value "Git user.email" "$default_email")"
+}
+
+assert_cloud_init_is_rendered() {
+  local unresolved
+  unresolved="$(grep -nE '@[A-Z0-9_]+@' "$CLOUD_INIT_FILE" || true)"
+
+  if [[ -z "$unresolved" ]]; then
+    return
+  fi
+
+  if printf '%s\n' "$unresolved" | grep -vE '@GIT_USER_NAME_B64@|@GIT_USER_EMAIL_B64@' >/dev/null 2>&1; then
+    echo "Cloud-init artifact has unresolved non-Git placeholders: $CLOUD_INIT_FILE" >&2
+    printf '%s\n' "$unresolved" | grep -vE '@GIT_USER_NAME_B64@|@GIT_USER_EMAIL_B64@' >&2
+    echo "Run: ./scripts/render-bootstrap-artifacts.sh" >&2
+    exit 1
+  fi
+}
+
 render_cloud_init_template() {
   local template_file output_file git_name_b64 git_email_b64
   template_file="$1"
@@ -72,12 +123,6 @@ render_cloud_init_template() {
   git_email_b64="$(b64_no_newline "$GIT_USER_EMAIL")"
 
   sed \
-    -e "s/@NODE_MAJOR@/$(escape_sed_replacement "$NODE_MAJOR")/g" \
-    -e "s/@CODEX_VERSION@/$(escape_sed_replacement "$CODEX_VERSION")/g" \
-    -e "s/@BR_VERSION@/$(escape_sed_replacement "$BR_VERSION")/g" \
-    -e "s/@PNPM_VERSION@/$(escape_sed_replacement "$PNPM_VERSION")/g" \
-    -e "s/@PLAYWRIGHT_MCP_VERSION@/$(escape_sed_replacement "$PLAYWRIGHT_MCP_VERSION")/g" \
-    -e "s/@PLAYWRIGHT_VERSION@/$(escape_sed_replacement "$PLAYWRIGHT_VERSION")/g" \
     -e "s/@GIT_USER_NAME_B64@/$(escape_sed_replacement "$git_name_b64")/g" \
     -e "s/@GIT_USER_EMAIL_B64@/$(escape_sed_replacement "$git_email_b64")/g" \
     "$template_file" > "$output_file"
@@ -88,6 +133,7 @@ need_cmd jq
 need_cmd nc
 need_cmd sed
 need_cmd base64
+need_cmd grep
 
 # Ensure doctl is authenticated
 if ! doctl account get >/dev/null 2>&1; then
@@ -104,6 +150,8 @@ if [[ ! -f "$CLOUD_INIT_FILE" ]]; then
   echo "Cloud-init source file not found: $CLOUD_INIT_FILE"
   exit 1
 fi
+resolve_git_identity
+assert_cloud_init_is_rendered
 rendered_ts="$(date -u +"%Y%m%dT%H%M%SZ")"
 rendered_cloud_init_file="/tmp/cloud-init.rendered.${rendered_ts}.$$.yaml"
 render_cloud_init_template "$CLOUD_INIT_FILE" "$rendered_cloud_init_file"

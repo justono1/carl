@@ -1,15 +1,25 @@
-name: Checksum Guard
+name: Bootstrap Artifact Guard
 
 on:
   push:
   pull_request:
 
 jobs:
-  checksum-guard:
+  artifact-guard:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Render bootstrap artifacts
+        run: |
+          set -euo pipefail
+          ./scripts/render-bootstrap-artifacts.sh
+
+      - name: Verify artifacts are committed
+        run: |
+          set -euo pipefail
+          git diff --exit-code
 
       - name: Verify macOS bootstrap checksums
         run: |
