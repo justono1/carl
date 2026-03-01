@@ -12,7 +12,7 @@ GIT_USER_NAME=""
 GIT_USER_EMAIL=""
 
 CODEX_VERSION="0.104.0"
-BR_VERSION="0.1.12"
+BR_VERSION="0.1.7"
 PNPM_VERSION="10.30.1"
 PLAYWRIGHT_MCP_VERSION="0.0.68"
 PLAYWRIGHT_VERSION="1.58.2"
@@ -32,6 +32,22 @@ cleanup() {
   fi
 }
 trap cleanup EXIT
+
+ensure_rust_toolchain() {
+  if command -v cargo >/dev/null 2>&1; then
+    return
+  fi
+
+  log "Rust toolchain not found; installing rustup (minimal profile) for br source fallback."
+  curl -fsSL https://sh.rustup.rs | sh -s -- -y --profile minimal
+
+  if [[ -f "${HOME}/.cargo/env" ]]; then
+    # shellcheck disable=SC1090
+    source "${HOME}/.cargo/env"
+  fi
+
+  command -v cargo >/dev/null 2>&1 || die "cargo was not found after rustup installation."
+}
 
 usage() {
   cat <<'USAGE'
@@ -242,18 +258,25 @@ install_br() {
     | jq -r '.assets[]?.browser_download_url | select(test("br-.*((darwin|macos).*(arm64|aarch64)|(arm64|aarch64).*(darwin|macos))\\.tar\\.gz$"))' \
     | head -n1 || true)"
 
-  [[ -n "${asset_url}" ]] || die "Could not find a macOS arm64 br tarball for ${br_tag}."
-
-  tmp_dir="$(mktemp -d)"
-  curl -fsSL "${asset_url}" -o "${tmp_dir}/br.tar.gz"
-  tar -xzf "${tmp_dir}/br.tar.gz" -C "${tmp_dir}"
-  br_bin="$(find "${tmp_dir}" -type f -name br | head -n1 || true)"
-  [[ -n "${br_bin}" ]] || die "Downloaded br archive did not contain a br binary."
-
   brew_prefix="$(brew --prefix)"
   install_dir="${brew_prefix}/bin"
-  install -m 0755 "${br_bin}" "${install_dir}/br"
-  rm -rf "${tmp_dir}"
+
+  if [[ -n "${asset_url}" ]]; then
+    tmp_dir="$(mktemp -d)"
+    curl -fsSL "${asset_url}" -o "${tmp_dir}/br.tar.gz"
+    tar -xzf "${tmp_dir}/br.tar.gz" -C "${tmp_dir}"
+    br_bin="$(find "${tmp_dir}" -type f -name br | head -n1 || true)"
+    [[ -n "${br_bin}" ]] || die "Downloaded br archive did not contain a br binary."
+    install -m 0755 "${br_bin}" "${install_dir}/br"
+    rm -rf "${tmp_dir}"
+  else
+    log "No macOS arm64 release tarball found for ${br_tag}; falling back to source build."
+    ensure_rust_toolchain
+    cargo install --git https://github.com/Dicklesworthstone/beads_rust.git --tag "${br_tag}" --bin br --force
+    [[ -x "${HOME}/.cargo/bin/br" ]] || die "cargo install completed but ~/.cargo/bin/br was not found."
+    install -m 0755 "${HOME}/.cargo/bin/br" "${install_dir}/br"
+  fi
+
   br --version
 }
 
@@ -364,6 +387,7 @@ main() {
   write_marker
 
   log "Bootstrap complete. Marker written to ${MARKER_FILE}."
+  log "If node/npm/codex are not found in your current shell, run: eval \"$(/opt/homebrew/bin/brew shellenv)\""
 }
 
 main "$@"

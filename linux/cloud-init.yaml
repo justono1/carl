@@ -94,7 +94,7 @@ write_files:
 
       NODE_MAJOR="$(resolve_template_value "24" "24")"
       CODEX_VERSION="$(resolve_template_value "0.104.0" "0.104.0")"
-      BR_VERSION="$(resolve_template_value "0.1.12" "0.1.12")"
+      BR_VERSION="$(resolve_template_value "0.1.7" "0.1.7")"
       PNPM_VERSION="$(resolve_template_value "10.30.1" "10.30.1")"
       PLAYWRIGHT_MCP_VERSION="$(resolve_template_value "0.0.68" "0.0.68")"
       PLAYWRIGHT_VERSION="$(resolve_template_value "1.58.2" "1.58.2")"
