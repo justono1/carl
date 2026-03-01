@@ -95,8 +95,6 @@ load_brew_env() {
 write_embedded_brewfile() {
   TMP_BREWFILE="$(mktemp "/tmp/carl.Brewfile.XXXXXX")"
   cat > "${TMP_BREWFILE}" <<'EOF'
-tap "homebrew/core"
-
 # Runtime/toolchain foundation
 brew "node"
 brew "python"
