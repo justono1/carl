@@ -13,8 +13,7 @@ Set up a fresh macOS `arm64` machine with a ready-to-use development toolchain u
 
 2. Add repo deliverables.
    Create:
-   - `macos/Brewfile`
-   - `macos/bootstrap-mac.sh`
+   - `macos/bootstrap-mac.sh` (embedded fixed Homebrew package profile)
    - `README.md` Mac quick-start section
 
 3. Define package ownership.
@@ -28,7 +27,7 @@ Set up a fresh macOS `arm64` machine with a ready-to-use development toolchain u
    - install Xcode CLT if missing
    - install Homebrew if missing
    - load `brew shellenv`
-   - run `brew bundle check || brew bundle install`
+   - run `brew bundle check || brew bundle install` using embedded package list
    - install npm global CLIs
    - install Playwright browsers
    - run verification checks

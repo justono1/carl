@@ -1,11 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SCRIPT_VERSION="2026-03-01-v1"
-SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+SCRIPT_VERSION="2026-03-01-v2"
 MARKER_FILE="${HOME}/.bootstrap_done"
-
-BREWFILE_PATH=""
 TMP_BREWFILE=""
 
 INSTALL_PNPM="${INSTALL_PNPM:-1}"
@@ -31,10 +28,9 @@ trap cleanup EXIT
 usage() {
   cat <<'EOF'
 Usage:
-  bootstrap-mac.sh [--brewfile /path/to/Brewfile]
+  bootstrap-mac.sh
 
 Environment variables:
-  CARL_BREWFILE_URL         Optional URL to download Brewfile if --brewfile is not set.
   INSTALL_PNPM              Set to 0 to skip pnpm npm-global install.
   INSTALL_PLAYWRIGHT_MCP    Set to 0 to skip @playwright/mcp npm-global install.
   PLAYWRIGHT_BROWSERS       Space-delimited browser list for playwright install (default: chromium).
@@ -43,22 +39,19 @@ EOF
 }
 
 parse_args() {
-  while [[ $# -gt 0 ]]; do
-    case "$1" in
-      --brewfile)
-        [[ $# -ge 2 ]] || die "--brewfile requires a path"
-        BREWFILE_PATH="$2"
-        shift 2
-        ;;
-      -h|--help)
-        usage
-        exit 0
-        ;;
-      *)
-        die "Unknown argument: $1"
-        ;;
-    esac
-  done
+  if [[ $# -eq 0 ]]; then
+    return
+  fi
+
+  case "$1" in
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      die "This script takes no positional arguments."
+      ;;
+  esac
 }
 
 ensure_macos_arm64() {
@@ -99,36 +92,36 @@ load_brew_env() {
   fi
 }
 
-resolve_brewfile() {
-  if [[ -n "${BREWFILE_PATH}" ]]; then
-    [[ -f "${BREWFILE_PATH}" ]] || die "Brewfile not found: ${BREWFILE_PATH}"
-    return
-  fi
+write_embedded_brewfile() {
+  TMP_BREWFILE="$(mktemp "/tmp/carl.Brewfile.XXXXXX")"
+  cat > "${TMP_BREWFILE}" <<'EOF'
+tap "homebrew/core"
 
-  if [[ -f "${SCRIPT_DIR}/Brewfile" ]]; then
-    BREWFILE_PATH="${SCRIPT_DIR}/Brewfile"
-    return
-  fi
+# Runtime/toolchain foundation
+brew "node"
+brew "python"
 
-  if [[ -n "${CARL_BREWFILE_URL:-}" ]]; then
-    TMP_BREWFILE="$(mktemp "/tmp/carl.Brewfile.XXXXXX")"
-    log "Downloading Brewfile from CARL_BREWFILE_URL."
-    curl -fsSL "${CARL_BREWFILE_URL}" -o "${TMP_BREWFILE}"
-    BREWFILE_PATH="${TMP_BREWFILE}"
-    return
-  fi
-
-  die "No Brewfile found. Pass --brewfile or set CARL_BREWFILE_URL."
+# Dev tooling and shell utilities
+brew "jq"
+brew "ripgrep"
+brew "wget"
+brew "rsync"
+brew "cmake"
+brew "ninja"
+brew "pkg-config"
+brew "bash"
+brew "gnu-sed"
+EOF
 }
 
 brew_bundle_apply() {
-  log "Applying Homebrew bundle: ${BREWFILE_PATH}"
+  log "Applying embedded Homebrew package set."
   brew tap homebrew/bundle >/dev/null
 
-  if brew bundle check --file="${BREWFILE_PATH}" >/dev/null 2>&1; then
-    log "Brewfile already satisfied."
+  if brew bundle check --file="${TMP_BREWFILE}" >/dev/null 2>&1; then
+    log "Homebrew package set already satisfied."
   else
-    brew bundle install --file="${BREWFILE_PATH}" --no-lock
+    brew bundle install --file="${TMP_BREWFILE}" --no-lock
   fi
 }
 
@@ -228,17 +221,17 @@ verify_playwright_browser_cache() {
 }
 
 write_marker() {
-  local completed_at brewfile_sha source_ref
+  local completed_at package_set_sha source_ref
   completed_at="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
-  brewfile_sha="$(shasum -a 256 "${BREWFILE_PATH}" | awk '{print $1}')"
+  package_set_sha="$(shasum -a 256 "${TMP_BREWFILE}" | awk '{print $1}')"
   source_ref="${BOOTSTRAP_SOURCE_REF:-unknown}"
 
   cat > "${MARKER_FILE}" <<EOF
 bootstrap_version=${SCRIPT_VERSION}
 completed_at=${completed_at}
 source_ref=${source_ref}
-brewfile_path=${BREWFILE_PATH}
-brewfile_sha256=${brewfile_sha}
+brew_profile=embedded-default
+brew_profile_sha256=${package_set_sha}
 EOF
 }
 
@@ -248,7 +241,7 @@ main() {
   ensure_xcode_clt
   ensure_homebrew
   load_brew_env
-  resolve_brewfile
+  write_embedded_brewfile
   brew_bundle_apply
   install_npm_globals
   install_playwright_browsers

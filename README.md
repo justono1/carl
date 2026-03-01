@@ -2,15 +2,16 @@
 
 **Code Automation and Runtime Layer**
 
-CARL is intended to broker the relationship between a developer and a cloud droplet by:
+CARL is a utility for building consistent developer environments across cloud and local machines by:
 
-- standing up a consistent remote development environment
-- applying developer-specific configuration to that machine (dotfiles, aliases, common quality-of-life setup, and related preferences)
+- bootstrapping cloud environments (currently DigitalOcean droplets)
+- bootstrapping fresh local environments (currently macOS arm64)
+- moving toward developer-specific configuration sync (dotfiles, aliases, and related preferences)
 
 ## Current Status
 
 This repository is in an early phase.  
-It already handles droplet provisioning and baseline machine bootstrap, but it does **not yet** fully manage local developer config syncing (dotfiles, shell aliases, etc.) end-to-end.
+It already handles DigitalOcean droplet provisioning and macOS baseline bootstrap, but it does **not yet** fully manage local developer config syncing (dotfiles, shell aliases, etc.) end-to-end.
 
 ## What CARL Does Today
 
@@ -36,10 +37,9 @@ The intended direction for this repository includes:
 - `digitalOcean/create-droplet.sh`: create and initialize a droplet
 - `digitalOcean/destroy-last-droplet.sh`: tear down the droplet recorded in state
 - `linux/cloud-init.yaml`: machine bootstrap and runtime setup
-- `macos/Brewfile`: Homebrew package list for macOS bootstrap
-- `macos/bootstrap-mac.sh`: idempotent macOS arm64 bootstrap script
+- `macos/bootstrap-mac.sh`: idempotent macOS arm64 bootstrap script (embedded package set)
 - `macos/update-checksums.sh`: helper for regenerating/verifying checksum files
-- `macos/*.sha256`: checksum files for pinned-source bootstrap verification
+- `macos/bootstrap-mac.sh.sha256`: checksum file for pinned-source bootstrap verification
 - `.github/workflows/checksums.yml`: CI guard for checksum drift
 - `.github/workflows/secret-scan.yml`: CI secret scanning with gitleaks
 - `.env.sample`: optional configuration overrides
@@ -86,33 +86,29 @@ No SSH hardening, fail2ban, or background management agents are installed in thi
 ### Option A: Run from local checkout
 
 ```bash
-./macos/bootstrap-mac.sh --brewfile ./macos/Brewfile
+./macos/bootstrap-mac.sh
 ```
 
-### Option B: One command from pinned source URL + checksums
+### Option B: One command from pinned source URL
 
 Replace placeholders with your repository and immutable commit SHA.
 
 ```bash
-RAW_BASE="https://raw.githubusercontent.com/<owner>/<repo>/<commit-sha>/macos"; TMP_DIR="$(mktemp -d)" && \
-curl -fsSL "$RAW_BASE/bootstrap-mac.sh" -o "$TMP_DIR/bootstrap-mac.sh" && \
-curl -fsSL "$RAW_BASE/bootstrap-mac.sh.sha256" -o "$TMP_DIR/bootstrap-mac.sh.sha256" && \
-curl -fsSL "$RAW_BASE/Brewfile" -o "$TMP_DIR/Brewfile" && \
-curl -fsSL "$RAW_BASE/Brewfile.sha256" -o "$TMP_DIR/Brewfile.sha256" && \
-(cd "$TMP_DIR" && shasum -a 256 -c bootstrap-mac.sh.sha256 && shasum -a 256 -c Brewfile.sha256) && \
-BOOTSTRAP_SOURCE_REF="<commit-sha>" bash "$TMP_DIR/bootstrap-mac.sh" --brewfile "$TMP_DIR/Brewfile"
+curl -fsSL "https://raw.githubusercontent.com/<owner>/<repo>/<commit-sha>/macos/bootstrap-mac.sh" | \
+BOOTSTRAP_SOURCE_REF="<commit-sha>" bash
 ```
 
 ### macOS Bootstrap Notes
 
 - Script enforces `Darwin` + `arm64`.
 - Script installs Xcode Command Line Tools and Homebrew if needed.
+- Homebrew package list is embedded in the script (single fixed profile; no alternate Brewfile path).
 - Toolchain verification is required before completion (`brew`, `node`, `npm`, `pnpm`, `codex`, `playwright`).
 - Marker file is written to `~/.bootstrap_done` with timestamp + metadata; installs remain idempotent and do not rely on marker state alone.
 
 ### Checksum Maintenance
 
-After editing `macos/bootstrap-mac.sh` or `macos/Brewfile`, refresh checksums before push:
+After editing `macos/bootstrap-mac.sh`, refresh checksum before push:
 
 ```bash
 ./macos/update-checksums.sh

@@ -5,8 +5,6 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 
 BOOTSTRAP_FILE="${SCRIPT_DIR}/bootstrap-mac.sh"
 BOOTSTRAP_SUM_FILE="${SCRIPT_DIR}/bootstrap-mac.sh.sha256"
-BREWFILE="${SCRIPT_DIR}/Brewfile"
-BREWFILE_SUM_FILE="${SCRIPT_DIR}/Brewfile.sha256"
 
 write_sum_line() {
   local src_file out_file label
@@ -35,15 +33,12 @@ mode="${1:-update}"
 case "${mode}" in
   update)
     write_sum_line "${BOOTSTRAP_FILE}" "${BOOTSTRAP_SUM_FILE}" "bootstrap-mac.sh"
-    write_sum_line "${BREWFILE}" "${BREWFILE_SUM_FILE}" "Brewfile"
-    echo "Updated checksum files:"
+    echo "Updated checksum file:"
     echo "  ${BOOTSTRAP_SUM_FILE}"
-    echo "  ${BREWFILE_SUM_FILE}"
     ;;
   --check|check)
     check_sum_line "${BOOTSTRAP_FILE}" "${BOOTSTRAP_SUM_FILE}" "bootstrap-mac.sh"
-    check_sum_line "${BREWFILE}" "${BREWFILE_SUM_FILE}" "Brewfile"
-    echo "Checksums match."
+    echo "Checksum matches."
     ;;
   *)
     echo "Usage: $0 [update|--check]" >&2
