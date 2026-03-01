@@ -2,6 +2,8 @@
 
 **Code Automation and Runtime Layer**
 
+<p><span style="font-size:1.25em;">🚨⚠️</span> <strong><span style="color:#b00020;">WARNING:</span></strong> This repository can enable macOS Remote Login (SSH) during bootstrap and is intended for controlled/private environments, not internet-exposed hardening.</p>
+
 CARL is a utility for building consistent developer environments across cloud and local machines by:
 
 - bootstrapping cloud environments (currently DigitalOcean droplets)
