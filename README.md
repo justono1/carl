@@ -36,21 +36,24 @@ The intended direction for this repository includes:
 
 - `digitalOcean/create-droplet.sh`: create and initialize a droplet
 - `digitalOcean/destroy-last-droplet.sh`: tear down the droplet recorded in state
+- `digitalOcean/push-secrets-to-last-droplet.sh`: push local secrets to the last created droplet
 - `.env`: canonical pinned tool versions + default droplet/runtime settings
 - `linux/cloud-init.yaml.in`: cloud-init template
 - `linux/cloud-init.yaml`: rendered cloud-init artifact consumed by droplet provisioning
 - `macos/bootstrap-mac.sh.in`: macOS bootstrap template
 - `macos/bootstrap-mac.sh`: rendered macOS bootstrap artifact
 - `scripts/render-bootstrap-artifacts.sh`: renders Linux/macOS artifacts from top-level `.env`
+- `scripts/push-secrets.sh`: pushes repo-local secrets to droplets/remote hosts
 - `macos/update-checksums.sh`: helper for regenerating/verifying checksum files
 - `macos/bootstrap-mac.sh.sha256`: checksum file for pinned-source bootstrap verification
+- `docs/secrets.md`: secrets policy and transfer workflows
 - `.github/workflows/checksums.yml`: CI guard for checksum drift
 - `.github/workflows/secret-scan.yml`: CI secret scanning with gitleaks
 
 ## Prerequisites
 
 - DigitalOcean account and `doctl` installed/authenticated
-- Local tools: `jq`, `nc`, `sed`, `base64`
+- Local tools: `jq`, `nc`, `sed`, `base64`, `ssh`, `scp`
 - SSH key available in DigitalOcean
 
 Authenticate `doctl` first:
@@ -77,11 +80,54 @@ ${EDITOR:-vi} .env
 
 This command waits for cloud-init bootstrap completion by default (set `WAIT_FOR_CLOUD_INIT=0` to skip).
 
-3. Destroy the last created droplet:
+3. (Optional) Push local secrets to the last created droplet:
+
+```bash
+./digitalOcean/push-secrets-to-last-droplet.sh
+```
+
+4. Destroy the last created droplet:
 
 ```bash
 ./digitalOcean/destroy-last-droplet.sh
 ```
+
+## Secrets Management (v1)
+
+CARL supports a repo-local secrets source while keeping secret values out of git history.
+
+- Local source of truth on this machine: `./.secrets/secrets.env` (untracked)
+- Canonical destination on target machines: `~/.config/carl/secrets.env`
+- Required file mode: `0600` for source and destination
+- Do not pass secrets via cloud-init user-data
+
+Initialize local source file:
+
+```bash
+mkdir -p .secrets
+touch .secrets/secrets.env
+chmod 600 .secrets/secrets.env
+```
+
+Push to an explicit SSH target:
+
+```bash
+./scripts/push-secrets.sh --ssh user@host
+```
+
+Push to the last created DigitalOcean droplet:
+
+```bash
+./scripts/push-secrets.sh --do-state
+```
+
+For a GUI-only macOS VM (no SSH), transfer `./.secrets/secrets.env` to `/tmp/carl.secrets.env` and run:
+
+```bash
+mkdir -p ~/.config/carl && install -m 600 /tmp/carl.secrets.env ~/.config/carl/secrets.env && rm -f /tmp/carl.secrets.env
+```
+
+See [docs/secrets.md](docs/secrets.md) for full workflows, macOS VM guidance, and troubleshooting.
 
 ## macOS Bootstrap (arm64)
 
@@ -157,6 +203,6 @@ Bootstrap/tool versions are pinned in top-level `.env` and compiled into rendere
 ## Notes
 
 - Top-level `.env` is the canonical config source for rendering bootstrap artifacts.
-- Top-level `.env` is non-secret by policy; store secrets/tool auth outside this repo.
+- Top-level `.env` is non-secret by policy; keep secret values in untracked `./.secrets/secrets.env`.
 - `digitalOcean/create-droplet.sh` writes a rendered cloud-init file to `/tmp` for traceability (Git identity injection only).
 - This README intentionally documents both present functionality and future intent.
