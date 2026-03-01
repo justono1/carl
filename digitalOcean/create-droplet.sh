@@ -1,10 +1,23 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+REPO_ROOT="$(cd -- "$SCRIPT_DIR/.." >/dev/null 2>&1 && pwd)"
+
+to_repo_root_path() {
+  local path="$1"
+  if [[ "$path" = /* ]]; then
+    printf '%s\n' "$path"
+  else
+    printf '%s\n' "$REPO_ROOT/$path"
+  fi
+}
+
 # Load optional .env file so config can live in the repo without
 # exporting variables on every command.
 # If the file is missing, defaults below are used.
-ENV_FILE="${ENV_FILE:-./.env}"
+ENV_FILE="${ENV_FILE:-$REPO_ROOT/.env}"
+ENV_FILE="$(to_repo_root_path "$ENV_FILE")"
 if [[ -f "$ENV_FILE" ]]; then
   set -a
   # shellcheck disable=SC1090
@@ -17,7 +30,8 @@ DROPLET_NAME="${DROPLET_NAME:-devbox-1}"
 REGION="${REGION:-nyc3}"
 IMAGE="${IMAGE:-ubuntu-24-04-x64}"
 SIZE="${SIZE:-s-1vcpu-2gb}"
-CLOUD_INIT_FILE="${CLOUD_INIT_FILE:-./cloud-init.yaml}"
+CLOUD_INIT_FILE="${CLOUD_INIT_FILE:-$REPO_ROOT/linux/cloud-init.yaml}"
+CLOUD_INIT_FILE="$(to_repo_root_path "$CLOUD_INIT_FILE")"
 
 # Cloud-init template variables (all optional; defaults match the Dockerfile intent)
 NODE_MAJOR="${NODE_MAJOR:-24}"
@@ -30,7 +44,8 @@ GIT_USER_NAME="${GIT_USER_NAME:-}"
 GIT_USER_EMAIL="${GIT_USER_EMAIL:-}"
 
 # State file written by this script (used by destroy script)
-STATE_FILE="${STATE_FILE:-./.do-droplet.json}"
+STATE_FILE="${STATE_FILE:-$REPO_ROOT/.do-droplet.json}"
+STATE_FILE="$(to_repo_root_path "$STATE_FILE")"
 
 # SSH key selection:
 # - Prefer setting SSH_KEY_ID explicitly

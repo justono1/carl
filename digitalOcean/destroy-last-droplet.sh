@@ -1,9 +1,22 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+REPO_ROOT="$(cd -- "$SCRIPT_DIR/.." >/dev/null 2>&1 && pwd)"
+
+to_repo_root_path() {
+  local path="$1"
+  if [[ "$path" = /* ]]; then
+    printf '%s\n' "$path"
+  else
+    printf '%s\n' "$REPO_ROOT/$path"
+  fi
+}
+
 # Load optional .env file so shared config (like STATE_FILE) is reused.
 # If the file is missing, script defaults are used.
-ENV_FILE="${ENV_FILE:-./.env}"
+ENV_FILE="${ENV_FILE:-$REPO_ROOT/.env}"
+ENV_FILE="$(to_repo_root_path "$ENV_FILE")"
 if [[ -f "$ENV_FILE" ]]; then
   set -a
   # shellcheck disable=SC1090
@@ -11,7 +24,8 @@ if [[ -f "$ENV_FILE" ]]; then
   set +a
 fi
 
-STATE_FILE="${STATE_FILE:-./.do-droplet.json}"
+STATE_FILE="${STATE_FILE:-$REPO_ROOT/.do-droplet.json}"
+STATE_FILE="$(to_repo_root_path "$STATE_FILE")"
 
 need_cmd() { command -v "$1" >/dev/null 2>&1 || { echo "Missing command: $1"; exit 1; }; }
 need_cmd doctl

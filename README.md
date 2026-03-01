@@ -15,7 +15,7 @@ It already handles droplet provisioning and baseline machine bootstrap, but it d
 ## What CARL Does Today
 
 - Creates a DigitalOcean droplet via `doctl`
-- Renders `cloud-init.yaml` from template variables (version pins + optional Git identity)
+- Renders `linux/cloud-init.yaml` from template variables (version pins + optional Git identity)
 - Bootstraps core tooling on first boot (Node, Codex CLI, pnpm, Playwright tooling, `br`, build tools, etc.)
 - Applies basic hardening (SSH settings + fail2ban)
 - Saves droplet state to `.do-droplet.json` for lifecycle management
@@ -32,9 +32,9 @@ The intended direction for this repository includes:
 
 ## Repository Layout
 
-- `create-droplet.sh`: create and initialize a droplet
-- `destroy-last-droplet.sh`: tear down the droplet recorded in state
-- `cloud-init.yaml`: machine bootstrap and runtime setup
+- `digitalOcean/create-droplet.sh`: create and initialize a droplet
+- `digitalOcean/destroy-last-droplet.sh`: tear down the droplet recorded in state
+- `linux/cloud-init.yaml`: machine bootstrap and runtime setup
 - `.env.sample`: optional configuration overrides
 
 ## Prerequisites
@@ -51,6 +51,8 @@ doctl auth init
 
 ## Quick Start
 
+Run these commands from the repository root.
+
 1. (Optional) Create local overrides:
 
 ```bash
@@ -60,13 +62,13 @@ cp .env.sample .env
 2. Create a droplet:
 
 ```bash
-./create-droplet.sh
+./digitalOcean/create-droplet.sh
 ```
 
 3. Destroy the last created droplet:
 
 ```bash
-./destroy-last-droplet.sh
+./digitalOcean/destroy-last-droplet.sh
 ```
 
 ## Configuration
@@ -81,5 +83,5 @@ Use `.env` to override defaults from `.env.sample`, including:
 ## Notes
 
 - `.env` is optional; scripts run with built-in defaults.
-- `create-droplet.sh` writes a rendered cloud-init file to `/tmp` for traceability.
+- `digitalOcean/create-droplet.sh` writes a rendered cloud-init file to `/tmp` for traceability.
 - This README intentionally documents both present functionality and future intent.
