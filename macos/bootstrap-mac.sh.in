@@ -106,13 +106,22 @@ prompt_required_value() {
 }
 
 resolve_git_identity() {
+  local default_name default_email
+
   if [[ ! -t 0 ]]; then
     die "Interactive terminal required to collect Git identity."
   fi
 
+  default_name=""
+  default_email=""
+  if command -v git >/dev/null 2>&1; then
+    default_name="$(git config --global --get user.name 2>/dev/null || true)"
+    default_email="$(git config --global --get user.email 2>/dev/null || true)"
+  fi
+
   log "Git identity is required."
-  GIT_USER_NAME="$(prompt_required_value "Git user.name" "")"
-  GIT_USER_EMAIL="$(prompt_required_value "Git user.email" "")"
+  GIT_USER_NAME="$(prompt_required_value "Git user.name" "${default_name}")"
+  GIT_USER_EMAIL="$(prompt_required_value "Git user.email" "${default_email}")"
 }
 
 configure_git_identity() {
