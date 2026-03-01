@@ -1,13 +1,41 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SCRIPT_VERSION="2026-03-01-v2"
+SCRIPT_VERSION="2026-03-01-v3"
 MARKER_FILE="${HOME}/.bootstrap_done"
 TMP_BREWFILE=""
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+REPO_ROOT="$(cd -- "$SCRIPT_DIR/.." >/dev/null 2>&1 && pwd)"
+
+to_repo_root_path() {
+  local path="$1"
+  if [[ "$path" = /* ]]; then
+    printf '%s\n' "$path"
+  else
+    printf '%s\n' "$REPO_ROOT/$path"
+  fi
+}
+
+# Optional .env support for local-repo execution parity with cloud-init knobs.
+# For pinned /tmp execution, pass ENV_FILE=/path/to/repo/.env when needed.
+ENV_FILE="${ENV_FILE:-$REPO_ROOT/.env}"
+ENV_FILE="$(to_repo_root_path "$ENV_FILE")"
+if [[ -f "$ENV_FILE" ]]; then
+  set -a
+  # shellcheck disable=SC1090
+  source "$ENV_FILE"
+  set +a
+fi
 
 INSTALL_PNPM="${INSTALL_PNPM:-1}"
 INSTALL_PLAYWRIGHT_MCP="${INSTALL_PLAYWRIGHT_MCP:-1}"
 PLAYWRIGHT_BROWSERS="${PLAYWRIGHT_BROWSERS:-chromium}"
+CODEX_VERSION="${CODEX_VERSION:-latest}"
+BR_VERSION="${BR_VERSION:-0.1.12}"
+PNPM_VERSION="${PNPM_VERSION:-latest}"
+PLAYWRIGHT_MCP_VERSION="${PLAYWRIGHT_MCP_VERSION:-latest}"
+PLAYWRIGHT_VERSION="${PLAYWRIGHT_VERSION:-latest}"
 
 log() {
   printf '[mac-bootstrap] %s\n' "$*"
@@ -31,9 +59,15 @@ Usage:
   bootstrap-mac.sh
 
 Environment variables:
+  ENV_FILE                  Optional .env path (relative to repo root or absolute).
   INSTALL_PNPM              Set to 0 to skip pnpm npm-global install.
   INSTALL_PLAYWRIGHT_MCP    Set to 0 to skip @playwright/mcp npm-global install.
   PLAYWRIGHT_BROWSERS       Space-delimited browser list for playwright install (default: chromium).
+  CODEX_VERSION             codex npm package version/tag (default: latest).
+  BR_VERSION                beads br release version (default: 0.1.12).
+  PNPM_VERSION              pnpm npm package version/tag (default: latest).
+  PLAYWRIGHT_MCP_VERSION    @playwright/mcp npm package version/tag (default: latest).
+  PLAYWRIGHT_VERSION        playwright npm package version/tag (default: latest).
   BOOTSTRAP_SOURCE_REF      Optional source metadata written to marker file.
 EOF
 }
@@ -124,32 +158,53 @@ brew_bundle_apply() {
 
 install_npm_globals() {
   local npm_packages=()
+  local codex_target playwright_target pnpm_target playwright_mcp_target
 
-  if command -v codex >/dev/null 2>&1; then
-    log "codex already available; skipping npm global install."
+  codex_target="@openai/codex@${CODEX_VERSION}"
+  playwright_target="playwright@${PLAYWRIGHT_VERSION}"
+  pnpm_target="pnpm@${PNPM_VERSION}"
+  playwright_mcp_target="@playwright/mcp@${PLAYWRIGHT_MCP_VERSION}"
+
+  npm_global_satisfied() {
+    local pkg="$1"
+    local version="$2"
+    local bin="${3:-}"
+    if [[ "${version}" == "latest" ]]; then
+      if [[ -n "${bin}" ]]; then
+        command -v "${bin}" >/dev/null 2>&1
+      else
+        npm ls -g --depth=0 "${pkg}" >/dev/null 2>&1
+      fi
+      return
+    fi
+    npm ls -g --depth=0 "${pkg}@${version}" >/dev/null 2>&1
+  }
+
+  if npm_global_satisfied "@openai/codex" "${CODEX_VERSION}" "codex"; then
+    log "${codex_target} already satisfied; skipping."
   else
-    npm_packages+=("@openai/codex@latest")
+    npm_packages+=("${codex_target}")
   fi
 
-  if command -v playwright >/dev/null 2>&1; then
-    log "playwright already available; skipping npm global install."
+  if npm_global_satisfied "playwright" "${PLAYWRIGHT_VERSION}" "playwright"; then
+    log "${playwright_target} already satisfied; skipping."
   else
-    npm_packages+=("playwright@latest")
+    npm_packages+=("${playwright_target}")
   fi
 
   if [[ "${INSTALL_PNPM}" == "1" ]]; then
-    if command -v pnpm >/dev/null 2>&1; then
-      log "pnpm already available; skipping npm global install."
+    if npm_global_satisfied "pnpm" "${PNPM_VERSION}" "pnpm"; then
+      log "${pnpm_target} already satisfied; skipping."
     else
-      npm_packages+=("pnpm@latest")
+      npm_packages+=("${pnpm_target}")
     fi
   fi
 
   if [[ "${INSTALL_PLAYWRIGHT_MCP}" == "1" ]]; then
-    if npm ls -g --depth=0 "@playwright/mcp" >/dev/null 2>&1; then
-      log "@playwright/mcp already installed globally; skipping."
+    if npm_global_satisfied "@playwright/mcp" "${PLAYWRIGHT_MCP_VERSION}"; then
+      log "${playwright_mcp_target} already satisfied; skipping."
     else
-      npm_packages+=("@playwright/mcp@latest")
+      npm_packages+=("${playwright_mcp_target}")
     fi
   fi
 
@@ -159,6 +214,44 @@ install_npm_globals() {
     log "Installing npm global packages: ${npm_packages[*]}"
     npm install -g "${npm_packages[@]}"
   fi
+}
+
+install_br() {
+  local existing_version br_tag release_api asset_url tmp_dir br_bin brew_prefix install_dir
+
+  if ! command -v jq >/dev/null 2>&1; then
+    die "jq is required to resolve beads release assets."
+  fi
+
+  if command -v br >/dev/null 2>&1; then
+    existing_version="$(br --version 2>/dev/null | grep -Eo '[0-9]+(\.[0-9]+){2}' | head -n1 || true)"
+    if [[ "${existing_version}" == "${BR_VERSION}" ]]; then
+      log "br ${BR_VERSION} already available; skipping install."
+      return
+    fi
+    log "br version mismatch (found: ${existing_version:-unknown}, target: ${BR_VERSION}); reinstalling."
+  fi
+
+  log "Installing br (${BR_VERSION})"
+  br_tag="v${BR_VERSION}"
+  release_api="https://api.github.com/repos/Dicklesworthstone/beads_rust/releases/tags/${br_tag}"
+  asset_url="$(curl -fsSL "${release_api}" \
+    | jq -r '.assets[]?.browser_download_url | select(test("br-.*((darwin|macos).*(arm64|aarch64)|(arm64|aarch64).*(darwin|macos))\\.tar\\.gz$"))' \
+    | head -n1 || true)"
+
+  [[ -n "${asset_url}" ]] || die "Could not find a macOS arm64 br tarball for ${br_tag}."
+
+  tmp_dir="$(mktemp -d)"
+  curl -fsSL "${asset_url}" -o "${tmp_dir}/br.tar.gz"
+  tar -xzf "${tmp_dir}/br.tar.gz" -C "${tmp_dir}"
+  br_bin="$(find "${tmp_dir}" -type f -name br | head -n1 || true)"
+  [[ -n "${br_bin}" ]] || die "Downloaded br archive did not contain a br binary."
+
+  brew_prefix="$(brew --prefix)"
+  install_dir="${brew_prefix}/bin"
+  install -m 0755 "${br_bin}" "${install_dir}/br"
+  rm -rf "${tmp_dir}"
+  br --version
 }
 
 install_playwright_browsers() {
@@ -175,6 +268,7 @@ verify_versions() {
   command -v npm >/dev/null 2>&1 || die "npm not found on PATH."
   command -v codex >/dev/null 2>&1 || die "codex not found on PATH."
   command -v playwright >/dev/null 2>&1 || die "playwright not found on PATH."
+  command -v br >/dev/null 2>&1 || die "br not found on PATH."
 
   if [[ "${INSTALL_PNPM}" == "1" ]]; then
     command -v pnpm >/dev/null 2>&1 || die "pnpm not found on PATH."
@@ -190,6 +284,7 @@ verify_versions() {
 
   codex --version
   playwright --version
+  br --version
 }
 
 verify_playwright_browser_cache() {
@@ -218,10 +313,20 @@ verify_playwright_browser_cache() {
 }
 
 write_marker() {
-  local completed_at package_set_sha source_ref
+  local completed_at package_set_sha source_ref pnpm_marker playwright_mcp_marker
   completed_at="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
   package_set_sha="$(shasum -a 256 "${TMP_BREWFILE}" | awk '{print $1}')"
   source_ref="${BOOTSTRAP_SOURCE_REF:-unknown}"
+  pnpm_marker="${PNPM_VERSION}"
+  playwright_mcp_marker="${PLAYWRIGHT_MCP_VERSION}"
+
+  if [[ "${INSTALL_PNPM}" != "1" ]]; then
+    pnpm_marker="skipped"
+  fi
+
+  if [[ "${INSTALL_PLAYWRIGHT_MCP}" != "1" ]]; then
+    playwright_mcp_marker="skipped"
+  fi
 
   cat > "${MARKER_FILE}" <<EOF
 bootstrap_version=${SCRIPT_VERSION}
@@ -229,6 +334,12 @@ completed_at=${completed_at}
 source_ref=${source_ref}
 brew_profile=embedded-default
 brew_profile_sha256=${package_set_sha}
+codex_version=${CODEX_VERSION}
+br_version=${BR_VERSION}
+pnpm_version=${pnpm_marker}
+playwright_mcp_version=${playwright_mcp_marker}
+playwright_version=${PLAYWRIGHT_VERSION}
+playwright_browsers=${PLAYWRIGHT_BROWSERS}
 EOF
 }
 
@@ -241,6 +352,7 @@ main() {
   write_embedded_brewfile
   brew_bundle_apply
   install_npm_globals
+  install_br
   install_playwright_browsers
   verify_versions
   verify_playwright_browser_cache

@@ -96,7 +96,13 @@ Replace placeholders with your repository and immutable commit SHA.
 ```bash
 sudo -v && \
 curl -fsSL "https://raw.githubusercontent.com/<owner>/<repo>/<commit-sha>/macos/bootstrap-mac.sh" -o /tmp/bootstrap-mac.sh && \
-BOOTSTRAP_SOURCE_REF="<commit-sha>" bash /tmp/bootstrap-mac.sh
+bash /tmp/bootstrap-mac.sh
+```
+
+Optional (only if you want repo `.env` overrides and source metadata in the marker file):
+
+```bash
+ENV_FILE="/absolute/path/to/<repo>/.env" BOOTSTRAP_SOURCE_REF="<commit-sha>" bash /tmp/bootstrap-mac.sh
 ```
 
 ### macOS Bootstrap Notes
@@ -105,7 +111,11 @@ BOOTSTRAP_SOURCE_REF="<commit-sha>" bash /tmp/bootstrap-mac.sh
 - Script installs Xcode Command Line Tools and Homebrew if needed.
 - The recommended command downloads the script to `/tmp` and executes it (instead of `curl | bash`) so interactive install prompts behave correctly.
 - Homebrew package list is embedded in the script (single fixed profile; no alternate Brewfile path).
-- Toolchain verification is required before completion (`brew`, `node`, `npm`, `pnpm`, `codex`, `playwright`).
+- Script installs `br` (beads) from GitHub release assets using `BR_VERSION`.
+- Toolchain verification is required before completion (`brew`, `node`, `npm`, `pnpm`, `codex`, `playwright`, `br`).
+- Local checkout execution auto-loads `<repo>/.env` if present.
+- Pinned `/tmp` execution can still use repo config by passing `ENV_FILE=/absolute/path/to/<repo>/.env`.
+- `BOOTSTRAP_SOURCE_REF` is optional and only used for marker metadata.
 - Marker file is written to `~/.bootstrap_done` with timestamp + metadata; installs remain idempotent and do not rely on marker state alone.
 
 ### Checksum Maintenance
@@ -127,7 +137,7 @@ To verify current files match committed checksums:
 Use `.env` to override defaults from `.env.sample`, including:
 
 - droplet settings (`DROPLET_NAME`, `REGION`, `IMAGE`, `SIZE`)
-- bootstrap/tool versions (`NODE_MAJOR`, `CODEX_VERSION`, `PNPM_VERSION`, etc.)
+- bootstrap/tool versions (`NODE_MAJOR`, `CODEX_VERSION`, `BR_VERSION`, `PNPM_VERSION`, `PLAYWRIGHT_MCP_VERSION`, `PLAYWRIGHT_VERSION`)
 - optional Git identity injection (`GIT_USER_NAME`, `GIT_USER_EMAIL`)
 - state file and SSH key selection (`STATE_FILE`, `SSH_KEY_ID`, `SSH_KEY_NAME_MATCH`)
 
