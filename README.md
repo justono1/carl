@@ -75,6 +75,8 @@ ${EDITOR:-vi} .env
 ./digitalOcean/create-droplet.sh
 ```
 
+This command waits for cloud-init bootstrap completion by default (set `WAIT_FOR_CLOUD_INIT=0` to skip).
+
 3. Destroy the last created droplet:
 
 ```bash
@@ -145,6 +147,12 @@ Top-level `.env` controls:
 - state file and SSH key selection (`STATE_FILE`, `SSH_KEY_ID`, `SSH_KEY_NAME_MATCH`)
 
 Bootstrap/tool versions are pinned in top-level `.env` and compiled into rendered artifacts.
+
+`create-droplet.sh` runtime controls:
+
+- `WAIT_FOR_CLOUD_INIT` (default `1`): wait for remote cloud-init completion over SSH before returning.
+- `CLOUD_INIT_WAIT_TIMEOUT_SECONDS` (default `1800`): max wait time when `WAIT_FOR_CLOUD_INIT=1`.
+- `CLOUD_INIT_POLL_INTERVAL_SECONDS` (default `10`): polling interval for cloud-init status checks.
 
 ## Notes
 

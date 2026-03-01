@@ -33,6 +33,9 @@ CLOUD_INIT_FILE="${CLOUD_INIT_FILE:-$REPO_ROOT/linux/cloud-init.yaml}"
 CLOUD_INIT_FILE="$(to_repo_root_path "$CLOUD_INIT_FILE")"
 GIT_USER_NAME=""
 GIT_USER_EMAIL=""
+WAIT_FOR_CLOUD_INIT="${WAIT_FOR_CLOUD_INIT:-1}"
+CLOUD_INIT_WAIT_TIMEOUT_SECONDS="${CLOUD_INIT_WAIT_TIMEOUT_SECONDS:-1800}"
+CLOUD_INIT_POLL_INTERVAL_SECONDS="${CLOUD_INIT_POLL_INTERVAL_SECONDS:-10}"
 
 # State file written by this script (used by destroy script)
 STATE_FILE="${STATE_FILE:-$REPO_ROOT/.do-droplet.json}"
@@ -126,6 +129,67 @@ render_cloud_init_template() {
     -e "s/@GIT_USER_NAME_B64@/$(escape_sed_replacement "$git_name_b64")/g" \
     -e "s/@GIT_USER_EMAIL_B64@/$(escape_sed_replacement "$git_email_b64")/g" \
     "$template_file" > "$output_file"
+}
+
+wait_for_cloud_init_over_ssh() {
+  local host connected wait_start elapsed status
+  host="$1"
+  connected=0
+
+  if [[ "${WAIT_FOR_CLOUD_INIT}" != "1" ]]; then
+    return 0
+  fi
+
+  if ! command -v ssh >/dev/null 2>&1; then
+    echo "Skipping cloud-init wait: ssh command not found on local machine." >&2
+    echo "Run manually: ssh root@${host} 'cloud-init status --wait && cloud-init status --long'" >&2
+    return 0
+  fi
+
+  echo "Waiting for cloud-init bootstrap to finish (this can take several minutes)..."
+
+  wait_start=$SECONDS
+  while (( SECONDS - wait_start < 120 )); do
+    if ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=5 "root@${host}" "true" >/dev/null 2>&1; then
+      connected=1
+      break
+    fi
+    sleep 2
+  done
+
+  if (( connected == 0 )); then
+    echo "Could not establish non-interactive SSH session for cloud-init checks." >&2
+    echo "Run manually: ssh root@${host} 'cloud-init status --wait && cloud-init status --long'" >&2
+    return 0
+  fi
+
+  wait_start=$SECONDS
+  while true; do
+    status="$(ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=5 "root@${host}" \
+      "cloud-init status --long 2>/dev/null || cloud-init status 2>/dev/null || true" 2>/dev/null || true)"
+
+    if [[ "${status}" == *"status: done"* ]]; then
+      echo "cloud-init reported status: done"
+      return 0
+    fi
+
+    if [[ "${status}" == *"status: error"* ]]; then
+      echo "cloud-init reported status: error on ${host}" >&2
+      ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=5 "root@${host}" \
+        "echo '--- cloud-init status --long ---'; cloud-init status --long || true; echo '--- /var/log/cloud-init-output.log (tail) ---'; tail -n 200 /var/log/cloud-init-output.log || true" \
+        || true
+      return 1
+    fi
+
+    elapsed=$((SECONDS - wait_start))
+    if (( elapsed >= CLOUD_INIT_WAIT_TIMEOUT_SECONDS )); then
+      echo "Timed out waiting for cloud-init after ${CLOUD_INIT_WAIT_TIMEOUT_SECONDS}s." >&2
+      echo "Run manually: ssh root@${host} 'cloud-init status --long; tail -n 200 /var/log/cloud-init-output.log'" >&2
+      return 1
+    fi
+
+    sleep "${CLOUD_INIT_POLL_INTERVAL_SECONDS}"
+  done
 }
 
 need_cmd doctl
@@ -245,6 +309,15 @@ jq -n \
       created_at: $created_at
     }
   }' > "$STATE_FILE"
+
+if [[ -n "${ip}" && "${ip}" != "null" ]]; then
+  if ! wait_for_cloud_init_over_ssh "$ip"; then
+    echo
+    echo "⚠️ Droplet was created, but cloud-init bootstrap did not complete successfully."
+    echo "State saved to: $STATE_FILE"
+    exit 1
+  fi
+fi
 
 echo
 echo "✅ Droplet created: $DROPLET_NAME (id: $droplet_id)"
