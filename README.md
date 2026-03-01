@@ -89,19 +89,21 @@ No SSH hardening, fail2ban, or background management agents are installed in thi
 ./macos/bootstrap-mac.sh
 ```
 
-### Option B: One command from pinned source URL
+### Option B: One command from pinned source URL (recommended)
 
 Replace placeholders with your repository and immutable commit SHA.
 
 ```bash
-curl -fsSL "https://raw.githubusercontent.com/<owner>/<repo>/<commit-sha>/macos/bootstrap-mac.sh" | \
-BOOTSTRAP_SOURCE_REF="<commit-sha>" bash
+sudo -v && \
+curl -fsSL "https://raw.githubusercontent.com/<owner>/<repo>/<commit-sha>/macos/bootstrap-mac.sh" -o /tmp/bootstrap-mac.sh && \
+BOOTSTRAP_SOURCE_REF="<commit-sha>" bash /tmp/bootstrap-mac.sh
 ```
 
 ### macOS Bootstrap Notes
 
 - Script enforces `Darwin` + `arm64`.
 - Script installs Xcode Command Line Tools and Homebrew if needed.
+- The recommended command downloads the script to `/tmp` and executes it (instead of `curl | bash`) so interactive install prompts behave correctly.
 - Homebrew package list is embedded in the script (single fixed profile; no alternate Brewfile path).
 - Toolchain verification is required before completion (`brew`, `node`, `npm`, `pnpm`, `codex`, `playwright`).
 - Marker file is written to `~/.bootstrap_done` with timestamp + metadata; installs remain idempotent and do not rely on marker state alone.

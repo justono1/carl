@@ -116,7 +116,6 @@ EOF
 
 brew_bundle_apply() {
   log "Applying embedded Homebrew package set."
-  brew tap homebrew/bundle >/dev/null
 
   if brew bundle check --file="${TMP_BREWFILE}" >/dev/null 2>&1; then
     log "Homebrew package set already satisfied."
