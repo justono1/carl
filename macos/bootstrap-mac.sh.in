@@ -237,6 +237,23 @@ load_brew_env() {
   fi
 }
 
+ensure_local_bin_path() {
+  local export_line profile
+  export_line='export PATH="$HOME/.local/bin:$PATH"'
+
+  export PATH="${HOME}/.local/bin:${PATH}"
+
+  for profile in "${HOME}/.zprofile" "${HOME}/.zshrc" "${HOME}/.bash_profile"; do
+    if [[ -f "${profile}" ]]; then
+      if ! grep -Fqx "${export_line}" "${profile}"; then
+        printf '\n%s\n' "${export_line}" >> "${profile}"
+      fi
+    else
+      printf '%s\n' "${export_line}" > "${profile}"
+    fi
+  done
+}
+
 write_embedded_brewfile() {
   TMP_BREWFILE="$(mktemp "/tmp/carl.Brewfile.XXXXXX")"
   cat > "${TMP_BREWFILE}" <<'BREWFILE'
@@ -513,6 +530,7 @@ main() {
   ensure_xcode_clt
   ensure_homebrew
   load_brew_env
+  ensure_local_bin_path
   configure_git_identity
   write_embedded_brewfile
   brew_bundle_apply

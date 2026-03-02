@@ -165,6 +165,7 @@ BOOTSTRAP_SOURCE_REF="<commit-sha>" bash /tmp/bootstrap-mac.sh
 - The recommended command downloads the script to `/tmp` and executes it (instead of `curl | bash`) so interactive install prompts behave correctly.
 - Homebrew package list is embedded in the script (single fixed profile; no alternate Brewfile path).
 - Claude Code is installed via the official native installer (`claude.ai/install.sh`); npm install is deprecated upstream.
+- Script ensures `~/.local/bin` is on PATH for current and future zsh/bash sessions.
 - Script installs `br` (beads) from GitHub release assets using the pinned rendered version.
 - Toolchain verification is required before completion (`brew`, `node`, `npm`, `tmux`, `pnpm`, `codex`, `claude`, `playwright`, `br`).
 - Script prompts for Git `user.name` and `user.email` in an interactive terminal session.
