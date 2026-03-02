@@ -1,6 +1,6 @@
 # CARL
 
-**Code Automation and Runtime Layer**
+**Coding Agent Runtime Layer**
 
 <p><span style="font-size:1.25em;">🚨⚠️</span> <strong><span style="color:#b00020;">WARNING:</span></strong> This repository can provision SSH-accessible environments and transfer secrets over SSH. It is intended for controlled/private environments, not internet-exposed hardening.</p>
 
