@@ -204,6 +204,42 @@ configure_git_identity() {
   git config --global user.email "${GIT_USER_EMAIL}"
 }
 
+ensure_ssh_keypair() {
+  local ssh_dir private_key public_key key_comment host_name
+  ssh_dir="${HOME}/.ssh"
+  private_key="${ssh_dir}/id_ed25519"
+  public_key="${private_key}.pub"
+
+  command -v ssh-keygen >/dev/null 2>&1 || die "ssh-keygen is required but was not found."
+
+  mkdir -p "${ssh_dir}"
+  chmod 700 "${ssh_dir}"
+
+  if [[ -n "${GIT_USER_EMAIL}" ]]; then
+    key_comment="${GIT_USER_EMAIL}"
+  else
+    host_name="$(scutil --get LocalHostName 2>/dev/null || hostname 2>/dev/null || echo "mac")"
+    key_comment="$(whoami)@${host_name}"
+  fi
+
+  if [[ -f "${private_key}" ]]; then
+    log "SSH key already exists at ${private_key}; preserving existing key"
+  else
+    log "Generating SSH key at ${private_key}"
+    ssh-keygen -t ed25519 -a 64 -f "${private_key}" -N "" -C "${key_comment}"
+  fi
+
+  if [[ ! -f "${public_key}" ]]; then
+    log "Public key missing at ${public_key}; regenerating from private key"
+    ssh-keygen -y -f "${private_key}" > "${public_key}"
+  fi
+
+  chmod 600 "${private_key}"
+  chmod 644 "${public_key}"
+
+  log "SSH public key available at ${public_key}"
+}
+
 ensure_xcode_clt() {
   if xcode-select -p >/dev/null 2>&1; then
     log "Xcode Command Line Tools already installed."
@@ -560,6 +596,7 @@ main() {
   load_brew_env
   ensure_local_bin_path
   configure_git_identity
+  ensure_ssh_keypair
   write_embedded_brewfile
   brew_bundle_apply
   install_npm_globals

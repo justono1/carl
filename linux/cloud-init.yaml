@@ -113,6 +113,38 @@ write_files:
       GIT_USER_NAME="$(decode_b64 "$GIT_USER_NAME_B64")"
       GIT_USER_EMAIL="$(decode_b64 "$GIT_USER_EMAIL_B64")"
 
+      ensure_ssh_keypair() {
+        local ssh_dir private_key public_key key_comment host_name
+        ssh_dir="/root/.ssh"
+        private_key="${ssh_dir}/id_ed25519"
+        public_key="${private_key}.pub"
+
+        mkdir -p "${ssh_dir}"
+        chmod 700 "${ssh_dir}"
+
+        if [[ -n "${GIT_USER_EMAIL}" ]]; then
+          key_comment="${GIT_USER_EMAIL}"
+        else
+          host_name="$(hostname -f 2>/dev/null || hostname 2>/dev/null || echo "localhost")"
+          key_comment="root@${host_name}"
+        fi
+
+        if [[ -f "${private_key}" ]]; then
+          log "SSH key already exists at ${private_key}; preserving existing key"
+        else
+          log "Generating SSH key at ${private_key}"
+          ssh-keygen -t ed25519 -a 64 -f "${private_key}" -N "" -C "${key_comment}"
+        fi
+
+        if [[ ! -f "${public_key}" ]]; then
+          log "Public key missing at ${public_key}; regenerating from private key"
+          ssh-keygen -y -f "${private_key}" > "${public_key}"
+        fi
+
+        chmod 600 "${private_key}"
+        chmod 644 "${public_key}"
+      }
+
       export DEBIAN_FRONTEND=noninteractive
 
       log "Preparing workspace and root tool directories"
@@ -129,6 +161,8 @@ write_files:
       else
         log "Skipping git identity config (GIT_USER_NAME/GIT_USER_EMAIL not both provided)"
       fi
+
+      ensure_ssh_keypair
 
       log "Installing Node.js ${NODE_MAJOR}.x from NodeSource"
       mkdir -p /etc/apt/keyrings

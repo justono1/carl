@@ -21,6 +21,7 @@ It already handles DigitalOcean droplet provisioning and macOS baseline bootstra
 - Uses generated bootstrap artifacts rendered from canonical version pins in top-level `.env`
 - Bootstraps core tooling on first boot (Node, Codex CLI, Claude Code CLI via native installer, pnpm, Playwright tooling, `br`, `tmux`, build tools, etc.)
 - Bootstraps a fresh macOS arm64 environment with Homebrew + npm-global CLI tooling
+- Ensures machine-local SSH keys exist for general use (`/root/.ssh/id_ed25519` on droplets, `~/.ssh/id_ed25519` on macOS) without overwriting existing keys
 - Applies basic hardening (SSH settings + fail2ban)
 - Saves droplet state to `.do-droplet.json` for lifecycle management
 - Destroys the most recently created droplet using saved state
@@ -169,11 +170,24 @@ BOOTSTRAP_SOURCE_REF="<commit-sha>" bash /tmp/bootstrap-mac.sh
 - Script installs `br` (beads) from GitHub release assets using the pinned rendered version.
 - Toolchain verification is required before completion (`brew`, `node`, `npm`, `tmux`, `pnpm`, `codex`, `claude`, `playwright`, `br`).
 - Script prompts for Git `user.name` and `user.email` in an interactive terminal session.
+- Script ensures `~/.ssh/id_ed25519` exists for the current user (creates it only when missing).
 - Script prompts to enable Remote Login (SSH sharing); default is Yes (`[Y/n]`).
 - Set `ENABLE_REMOTE_LOGIN_DEFAULT=0` to make the Remote Login prompt default to No (`[y/N]`).
 - If Remote Login enablement fails, bootstrap logs a warning and continues; manual fallback is `sudo systemsetup -setremotelogin on`.
 - `BOOTSTRAP_SOURCE_REF` is optional and only used for marker metadata.
 - Marker file is written to `~/.bootstrap_done` with timestamp + metadata; installs remain idempotent and do not rely on marker state alone.
+
+### SSH Public Key Output
+
+Existing SSH private keys are preserved. To copy public keys for GitHub or other services:
+
+```bash
+# On a droplet:
+cat /root/.ssh/id_ed25519.pub
+
+# On macOS:
+cat ~/.ssh/id_ed25519.pub
+```
 
 ### Artifact Rendering
 
