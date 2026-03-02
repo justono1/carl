@@ -5,7 +5,7 @@ CONFIG_FILE="${CLAUDE_SETTINGS_FILE:-$HOME/.claude/settings.json}"
 NOTIFY_BIN="${NOTIFY_BIN:-/usr/local/bin/carl-notify}"
 NOTIFY_ENABLED_DEFAULT="${CARL_NOTIFY_ENABLED_DEFAULT:-1}"
 NOTIFY_MIN_INTERVAL_SEC_DEFAULT="${CARL_NOTIFY_MIN_INTERVAL_SEC_DEFAULT:-120}"
-NOTIFY_INCLUDE_SNIPPET_DEFAULT="${CARL_NOTIFY_INCLUDE_SNIPPET_DEFAULT:-0}"
+NOTIFY_INCLUDE_SNIPPET_DEFAULT="${CARL_NOTIFY_INCLUDE_SNIPPET_DEFAULT:-1}"
 
 usage() {
   cat <<'USAGE'
@@ -112,28 +112,30 @@ jq --arg cmd "$command_string" '
   . as $root
   | if ($root | type) == "object" then $root else {} end
   | .hooks = (.hooks // {})
-  | .hooks.Notification = (
-      if (.hooks.Notification | type) == "array"
-      then .hooks.Notification
-      else []
-      end
-    )
-  | if ([ .hooks.Notification[]?.hooks[]? | select(.type == "command" and .command == $cmd) ] | length) > 0
-    then .
-    else .hooks.Notification += [
-      {
-        "hooks": [
+  | reduce ["Notification","Stop"][] as $event (
+      .;
+      .hooks[$event] = (
+        if (.hooks[$event] | type) == "array"
+        then .hooks[$event]
+        else []
+        end
+      )
+      | if ([ .hooks[$event][]?.hooks[]? | select(.type == "command" and .command == $cmd) ] | length) > 0
+        then .
+        else .hooks[$event] += [
           {
-            "type": "command",
-            "command": $cmd
+            "hooks": [
+              {
+                "type": "command",
+                "command": $cmd
+              }
+            ]
           }
         ]
-      }
-    ]
-    end
+        end
+    )
 ' "$CONFIG_FILE" > "$tmp_file"
 
 mv "$tmp_file" "$CONFIG_FILE"
 
-log "Configured Claude Notification hook in ${CONFIG_FILE}"
-
+log "Configured Claude Notification/Stop hooks in ${CONFIG_FILE}"

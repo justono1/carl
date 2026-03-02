@@ -50,7 +50,7 @@ The intended direction for this repository includes:
 - `scripts/push-secrets.sh`: pushes repo-local secrets to droplets/remote hosts
 - `scripts/carl-notify.sh`: shared Slack notifier for Codex/Claude attention events
 - `scripts/configure-codex-notify.sh`: idempotently configures Codex notify command
-- `scripts/configure-claude-notify.sh`: idempotently configures Claude Notification hooks
+- `scripts/configure-claude-notify.sh`: idempotently configures Claude `Notification` + `Stop` hooks
 - `macos/update-checksums.sh`: helper for regenerating/verifying checksum files
 - `macos/bootstrap-mac.sh.sha256`: checksum file for pinned-source bootstrap verification
 - `docs/secrets.md`: secrets policy and transfer workflows
@@ -141,9 +141,9 @@ See [docs/secrets.md](docs/secrets.md) for full workflows, macOS VM guidance, an
 CARL installs one shared `carl-notify` script and wires:
 
 - Codex `notify` command
-- Claude Notification hook
+- Claude `Notification` and `Stop` hooks
 
-Both invoke the same script, which posts to a Slack Incoming Webhook when the agent is waiting for input.
+Both invoke the same script, which posts to a Slack Incoming Webhook with source/event/session context and optional message snippet.
 
 ### Slack setup
 
@@ -168,7 +168,7 @@ Push secrets to the target machine:
 ```dotenv
 NOTIFY_ENABLED=1
 NOTIFY_MIN_INTERVAL_SEC=120
-NOTIFY_INCLUDE_SNIPPET=0
+NOTIFY_INCLUDE_SNIPPET=1
 ```
 
 ### Manual test on a target machine

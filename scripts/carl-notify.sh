@@ -14,8 +14,10 @@ Description:
 Runtime environment:
   - CARL_NOTIFY_ENABLED_DEFAULT (default: 1)
   - CARL_NOTIFY_MIN_INTERVAL_SEC_DEFAULT (default: 120)
-  - CARL_NOTIFY_INCLUDE_SNIPPET_DEFAULT (default: 0)
+  - CARL_NOTIFY_INCLUDE_SNIPPET_DEFAULT (default: 1)
+  - CARL_NOTIFY_SNIPPET_MAX_CHARS_DEFAULT (default: 500)
   - NOTIFY_ENABLED / NOTIFY_MIN_INTERVAL_SEC / NOTIFY_INCLUDE_SNIPPET (optional runtime overrides)
+  - NOTIFY_SNIPPET_MAX_CHARS (optional runtime override)
   - CARL_SECRETS_FILE (default: ~/.config/carl/secrets.env)
   - SLACK_WEBHOOK_URL (required when enabled)
 USAGE
@@ -166,6 +168,16 @@ extract_session_hint() {
   ' 2>/dev/null || true
 }
 
+extract_client() {
+  local payload
+  payload="$1"
+  printf '%s' "$payload" | jq -r '
+    .client
+    // .client_name
+    // empty
+  ' 2>/dev/null || true
+}
+
 should_send_based_on_dedupe() {
   local key now_ts state_file cache_dir min_interval
   key="$1"
@@ -228,15 +240,22 @@ SOURCE="$(normalize_source "$1")"
 shift || true
 
 DEFAULT_NOTIFY_ENABLED="$(normalize_bool "${CARL_NOTIFY_ENABLED_DEFAULT:-1}")"
-DEFAULT_NOTIFY_INCLUDE_SNIPPET="$(normalize_bool "${CARL_NOTIFY_INCLUDE_SNIPPET_DEFAULT:-0}")"
+DEFAULT_NOTIFY_INCLUDE_SNIPPET="$(normalize_bool "${CARL_NOTIFY_INCLUDE_SNIPPET_DEFAULT:-1}")"
 DEFAULT_NOTIFY_MIN_INTERVAL_SEC="${CARL_NOTIFY_MIN_INTERVAL_SEC_DEFAULT:-120}"
+DEFAULT_NOTIFY_SNIPPET_MAX_CHARS="${CARL_NOTIFY_SNIPPET_MAX_CHARS_DEFAULT:-500}"
 
 NOTIFY_ENABLED="$(normalize_bool "${NOTIFY_ENABLED:-$DEFAULT_NOTIFY_ENABLED}")"
 NOTIFY_INCLUDE_SNIPPET="$(normalize_bool "${NOTIFY_INCLUDE_SNIPPET:-$DEFAULT_NOTIFY_INCLUDE_SNIPPET}")"
 NOTIFY_MIN_INTERVAL_SEC="${NOTIFY_MIN_INTERVAL_SEC:-$DEFAULT_NOTIFY_MIN_INTERVAL_SEC}"
+NOTIFY_SNIPPET_MAX_CHARS="${NOTIFY_SNIPPET_MAX_CHARS:-$DEFAULT_NOTIFY_SNIPPET_MAX_CHARS}"
 
 if ! [[ "$NOTIFY_MIN_INTERVAL_SEC" =~ ^[0-9]+$ ]]; then
   log "NOTIFY_MIN_INTERVAL_SEC must be a non-negative integer (got: $NOTIFY_MIN_INTERVAL_SEC)"
+  exit 1
+fi
+
+if ! [[ "$NOTIFY_SNIPPET_MAX_CHARS" =~ ^[0-9]+$ ]]; then
+  log "NOTIFY_SNIPPET_MAX_CHARS must be a non-negative integer (got: $NOTIFY_SNIPPET_MAX_CHARS)"
   exit 1
 fi
 
@@ -271,6 +290,7 @@ EVENT="$(extract_event "$PAYLOAD" "$SOURCE")"
 MESSAGE="$(extract_message "$PAYLOAD")"
 CWD_HINT="$(extract_cwd "$PAYLOAD")"
 SESSION_HINT="$(extract_session_hint "$PAYLOAD")"
+CLIENT_HINT="$(extract_client "$PAYLOAD")"
 
 HOST_NAME="$(hostname -f 2>/dev/null || hostname 2>/dev/null || echo unknown-host)"
 USER_NAME="${USER:-unknown-user}"
@@ -286,6 +306,8 @@ fi
 TITLE="CARL attention needed: ${SOURCE} (${EVENT})"
 BODY_LINES=(
   "$TITLE"
+  "source=${SOURCE}"
+  "event=${EVENT}"
   "host=${HOST_NAME}"
   "user=${USER_NAME}"
   "cwd=${CWD_HINT}"
@@ -296,11 +318,14 @@ if [[ -n "$SESSION_HINT" ]]; then
   BODY_LINES+=("session=${SESSION_HINT}")
 fi
 
+if [[ -n "$CLIENT_HINT" ]]; then
+  BODY_LINES+=("client=${CLIENT_HINT}")
+fi
+
 if [[ "$NOTIFY_INCLUDE_SNIPPET" == "1" && -n "$MESSAGE" ]]; then
-  SNIPPET="$(printf '%.240s' "$MESSAGE")"
+  SNIPPET="$(printf '%.*s' "$NOTIFY_SNIPPET_MAX_CHARS" "$MESSAGE")"
   BODY_LINES+=("message=${SNIPPET}")
 fi
 
 SLACK_TEXT="$(printf '%s\n' "${BODY_LINES[@]}")"
 send_slack "$SLACK_WEBHOOK_URL" "$SLACK_TEXT"
-

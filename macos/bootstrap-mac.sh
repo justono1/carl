@@ -19,7 +19,7 @@ PLAYWRIGHT_MCP_VERSION="0.0.68"
 PLAYWRIGHT_VERSION="1.58.2"
 NOTIFY_ENABLED_DEFAULT="1"
 NOTIFY_MIN_INTERVAL_SEC_DEFAULT="120"
-NOTIFY_INCLUDE_SNIPPET_DEFAULT="0"
+NOTIFY_INCLUDE_SNIPPET_DEFAULT="1"
 CARL_NOTIFY_BIN="/usr/local/bin/carl-notify"
 
 log() {
@@ -301,7 +301,7 @@ shift || true
 
 default_enabled="$(normalize_bool "${CARL_NOTIFY_ENABLED_DEFAULT:-1}")"
 default_interval="${CARL_NOTIFY_MIN_INTERVAL_SEC_DEFAULT:-120}"
-default_include="$(normalize_bool "${CARL_NOTIFY_INCLUDE_SNIPPET_DEFAULT:-0}")"
+default_include="$(normalize_bool "${CARL_NOTIFY_INCLUDE_SNIPPET_DEFAULT:-1}")"
 
 notify_enabled="$(normalize_bool "${NOTIFY_ENABLED:-${default_enabled}}")"
 notify_interval="${NOTIFY_MIN_INTERVAL_SEC:-${default_interval}}"
@@ -468,25 +468,28 @@ configure_claude_notify() {
     . as $root
     | if ($root | type) == "object" then $root else {} end
     | .hooks = (.hooks // {})
-    | .hooks.Notification = (
-        if (.hooks.Notification | type) == "array"
-        then .hooks.Notification
-        else []
-        end
-      )
-    | if ([ .hooks.Notification[]?.hooks[]? | select(.type == "command" and .command == $cmd) ] | length) > 0
-      then .
-      else .hooks.Notification += [
-        {
-          "hooks": [
+    | reduce ["Notification","Stop"][] as $event (
+        .;
+        .hooks[$event] = (
+          if (.hooks[$event] | type) == "array"
+          then .hooks[$event]
+          else []
+          end
+        )
+        | if ([ .hooks[$event][]?.hooks[]? | select(.type == "command" and .command == $cmd) ] | length) > 0
+          then .
+          else .hooks[$event] += [
             {
-              "type": "command",
-              "command": $cmd
+              "hooks": [
+                {
+                  "type": "command",
+                  "command": $cmd
+                }
+              ]
             }
           ]
-        }
-      ]
-      end
+          end
+      )
   ' "${config_file}" > "${tmp_file}"
 
   mv "${tmp_file}" "${config_file}"
