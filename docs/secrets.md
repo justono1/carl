@@ -24,7 +24,10 @@ Dotenv format example:
 ```dotenv
 OPENAI_API_KEY=...
 GITHUB_TOKEN=...
+SLACK_WEBHOOK_URL=https://hooks.slack.com/services/...
 ```
+
+`SLACK_WEBHOOK_URL` is used by `carl-notify` for Codex/Claude attention notifications.
 
 ## Commands
 
@@ -110,3 +113,4 @@ ifconfig | grep "inet " | grep -v 127.0.0.1
 - `Could not resolve droplet.ip`: recreate/persist state with `create-droplet.sh`.
 - `Permission denied` over SSH/SCP: verify user, host, and key auth.
 - Keys missing with `--required-keys`: ensure dotenv entries exist and are non-empty.
+- `SLACK_WEBHOOK_URL is required`: add webhook URL to `./.secrets/secrets.env` and push again.

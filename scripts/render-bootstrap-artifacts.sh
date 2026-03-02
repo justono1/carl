@@ -17,6 +17,9 @@ DEFAULT_BR_VERSION="0.1.12"
 DEFAULT_PNPM_VERSION="10.30.1"
 DEFAULT_PLAYWRIGHT_MCP_VERSION="0.0.68"
 DEFAULT_PLAYWRIGHT_VERSION="1.58.2"
+DEFAULT_NOTIFY_ENABLED="1"
+DEFAULT_NOTIFY_MIN_INTERVAL_SEC="120"
+DEFAULT_NOTIFY_INCLUDE_SNIPPET="0"
 
 need_cmd() {
   command -v "$1" >/dev/null 2>&1 || {
@@ -40,6 +43,9 @@ validate_versions() {
     PNPM_VERSION
     PLAYWRIGHT_MCP_VERSION
     PLAYWRIGHT_VERSION
+    NOTIFY_ENABLED
+    NOTIFY_MIN_INTERVAL_SEC
+    NOTIFY_INCLUDE_SNIPPET
   )
 
   for name in "${required_vars[@]}"; do
@@ -48,11 +54,31 @@ validate_versions() {
       echo "${source_label}: missing required variable ${name}" >&2
       exit 1
     fi
-    lower="$(printf '%s' "${value}" | tr '[:upper:]' '[:lower:]')"
-    if [[ "${lower}" == "latest" ]]; then
-      echo "${source_label}: ${name} must be pinned and cannot be 'latest'" >&2
-      exit 1
-    fi
+    case "${name}" in
+      NODE_MAJOR|CODEX_VERSION|CLAUDE_CODE_VERSION|BR_VERSION|PNPM_VERSION|PLAYWRIGHT_MCP_VERSION|PLAYWRIGHT_VERSION)
+        lower="$(printf '%s' "${value}" | tr '[:upper:]' '[:lower:]')"
+        if [[ "${lower}" == "latest" ]]; then
+          echo "${source_label}: ${name} must be pinned and cannot be 'latest'" >&2
+          exit 1
+        fi
+        ;;
+      NOTIFY_ENABLED|NOTIFY_INCLUDE_SNIPPET)
+        lower="$(printf '%s' "${value}" | tr '[:upper:]' '[:lower:]')"
+        case "${lower}" in
+          0|1|true|false|yes|no|on|off) ;;
+          *)
+            echo "${source_label}: ${name} must be boolean-like (0/1/true/false)" >&2
+            exit 1
+            ;;
+        esac
+        ;;
+      NOTIFY_MIN_INTERVAL_SEC)
+        if [[ ! "${value}" =~ ^[0-9]+$ ]]; then
+          echo "${source_label}: ${name} must be a non-negative integer" >&2
+          exit 1
+        fi
+        ;;
+    esac
   done
 }
 
@@ -64,6 +90,9 @@ load_default_versions() {
   PNPM_VERSION="$DEFAULT_PNPM_VERSION"
   PLAYWRIGHT_MCP_VERSION="$DEFAULT_PLAYWRIGHT_MCP_VERSION"
   PLAYWRIGHT_VERSION="$DEFAULT_PLAYWRIGHT_VERSION"
+  NOTIFY_ENABLED="$DEFAULT_NOTIFY_ENABLED"
+  NOTIFY_MIN_INTERVAL_SEC="$DEFAULT_NOTIFY_MIN_INTERVAL_SEC"
+  NOTIFY_INCLUDE_SNIPPET="$DEFAULT_NOTIFY_INCLUDE_SNIPPET"
 }
 
 render_versions() {
@@ -79,6 +108,9 @@ render_versions() {
     -e "s/@PNPM_VERSION@/$(escape_sed_replacement "$PNPM_VERSION")/g" \
     -e "s/@PLAYWRIGHT_MCP_VERSION@/$(escape_sed_replacement "$PLAYWRIGHT_MCP_VERSION")/g" \
     -e "s/@PLAYWRIGHT_VERSION@/$(escape_sed_replacement "$PLAYWRIGHT_VERSION")/g" \
+    -e "s/@NOTIFY_ENABLED@/$(escape_sed_replacement "$NOTIFY_ENABLED")/g" \
+    -e "s/@NOTIFY_MIN_INTERVAL_SEC@/$(escape_sed_replacement "$NOTIFY_MIN_INTERVAL_SEC")/g" \
+    -e "s/@NOTIFY_INCLUDE_SNIPPET@/$(escape_sed_replacement "$NOTIFY_INCLUDE_SNIPPET")/g" \
     "$template_file" > "$output_file"
 }
 

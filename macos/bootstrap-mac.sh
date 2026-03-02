@@ -17,6 +17,10 @@ BR_VERSION="0.1.7"
 PNPM_VERSION="10.30.1"
 PLAYWRIGHT_MCP_VERSION="0.0.68"
 PLAYWRIGHT_VERSION="1.58.2"
+NOTIFY_ENABLED_DEFAULT="1"
+NOTIFY_MIN_INTERVAL_SEC_DEFAULT="120"
+NOTIFY_INCLUDE_SNIPPET_DEFAULT="0"
+CARL_NOTIFY_BIN="/usr/local/bin/carl-notify"
 
 log() {
   printf '[mac-bootstrap] %s\n' "$*"
@@ -216,6 +220,276 @@ ensure_local_bin_path() {
       printf '%s\n' "${export_line}" > "${profile}"
     fi
   done
+}
+
+normalize_bool() {
+  case "$1" in
+    1|true|TRUE|yes|YES|on|ON) printf '1' ;;
+    0|false|FALSE|no|NO|off|OFF) printf '0' ;;
+    *)
+      die "Invalid boolean value: $1"
+      ;;
+  esac
+}
+
+validate_notify_defaults() {
+  NOTIFY_ENABLED_DEFAULT="$(normalize_bool "${NOTIFY_ENABLED_DEFAULT}")"
+  NOTIFY_INCLUDE_SNIPPET_DEFAULT="$(normalize_bool "${NOTIFY_INCLUDE_SNIPPET_DEFAULT}")"
+
+  if [[ ! "${NOTIFY_MIN_INTERVAL_SEC_DEFAULT}" =~ ^[0-9]+$ ]]; then
+    die "NOTIFY_MIN_INTERVAL_SEC must be a non-negative integer."
+  fi
+}
+
+install_carl_notify_binary() {
+  local script_dir repo_script tmp_script
+  script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+  repo_script="${script_dir}/../scripts/carl-notify.sh"
+
+  if [[ -f "${repo_script}" ]]; then
+    if install -m 0755 "${repo_script}" "${CARL_NOTIFY_BIN}" 2>/dev/null; then
+      log "Installed carl-notify from repo script to ${CARL_NOTIFY_BIN}"
+      return
+    fi
+  fi
+
+  tmp_script="$(mktemp "/tmp/carl-notify.XXXXXX")"
+  cat > "${tmp_script}" <<'CARL_NOTIFY'
+#!/usr/bin/env bash
+set -euo pipefail
+
+log() {
+  printf '[carl-notify] %s\n' "$*" >&2
+}
+
+need_cmd() {
+  command -v "$1" >/dev/null 2>&1 || {
+    log "Missing command: $1"
+    exit 1
+  }
+}
+
+normalize_bool() {
+  case "$1" in
+    1|true|TRUE|yes|YES|on|ON) printf '1' ;;
+    0|false|FALSE|no|NO|off|OFF) printf '0' ;;
+    *)
+      log "Invalid boolean value: $1"
+      exit 1
+      ;;
+  esac
+}
+
+hash_sha256() {
+  if command -v sha256sum >/dev/null 2>&1; then
+    sha256sum | awk '{print $1}'
+    return 0
+  fi
+  shasum -a 256 | awk '{print $1}'
+}
+
+need_cmd jq
+need_cmd curl
+need_cmd hostname
+
+source_name="${1:-}"
+if [[ -z "${source_name}" ]]; then
+  log "Usage: carl-notify <codex|claude> [json-payload]"
+  exit 1
+fi
+shift || true
+
+default_enabled="$(normalize_bool "${CARL_NOTIFY_ENABLED_DEFAULT:-1}")"
+default_interval="${CARL_NOTIFY_MIN_INTERVAL_SEC_DEFAULT:-120}"
+default_include="$(normalize_bool "${CARL_NOTIFY_INCLUDE_SNIPPET_DEFAULT:-0}")"
+
+notify_enabled="$(normalize_bool "${NOTIFY_ENABLED:-${default_enabled}}")"
+notify_interval="${NOTIFY_MIN_INTERVAL_SEC:-${default_interval}}"
+notify_include="$(normalize_bool "${NOTIFY_INCLUDE_SNIPPET:-${default_include}}")"
+
+if [[ "${notify_enabled}" != "1" ]]; then
+  exit 0
+fi
+
+if [[ ! "${notify_interval}" =~ ^[0-9]+$ ]]; then
+  log "NOTIFY_MIN_INTERVAL_SEC must be a non-negative integer"
+  exit 1
+fi
+
+secrets_file="${CARL_SECRETS_FILE:-$HOME/.config/carl/secrets.env}"
+if [[ -f "${secrets_file}" ]]; then
+  set -a
+  # shellcheck disable=SC1090
+  source "${secrets_file}"
+  set +a
+fi
+
+if [[ -z "${SLACK_WEBHOOK_URL:-}" ]]; then
+  log "SLACK_WEBHOOK_URL is required in ${secrets_file}"
+  exit 2
+fi
+
+raw_payload=""
+if [[ $# -gt 0 ]]; then
+  raw_payload="$*"
+elif [[ ! -t 0 ]]; then
+  raw_payload="$(cat || true)"
+fi
+
+if [[ -z "${raw_payload}" ]]; then
+  payload='{}'
+elif printf '%s' "${raw_payload}" | jq -e . >/dev/null 2>&1; then
+  payload="${raw_payload}"
+else
+  payload="$(jq -n --arg message "${raw_payload}" '{message: $message}')"
+fi
+
+event="$(printf '%s' "${payload}" | jq -r '.hook_event_name // .event // .event_name // .type // .reason // "notification"')"
+message="$(printf '%s' "${payload}" | jq -r '.message // .title // .summary // .reason // .["last-assistant-message"] // .last_assistant_message // empty' | tr '\r\n' ' ' | sed -e 's/[[:space:]]\+/ /g' -e 's/^ //' -e 's/ $//')"
+cwd_hint="$(printf '%s' "${payload}" | jq -r '.cwd // .workspace_path // .workspace_root // .path // empty')"
+session_hint="$(printf '%s' "${payload}" | jq -r '.session_id // .["turn-id"] // .turn_id // .conversation_id // .request_id // .id // empty')"
+
+if [[ -z "${cwd_hint}" ]]; then
+  cwd_hint="$(pwd)"
+fi
+
+cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/carl-notify"
+state_file="${cache_dir}/last_event"
+mkdir -p "${cache_dir}"
+chmod 700 "${cache_dir}"
+
+dedupe_key="$(printf '%s|%s|%s|%s|%s' "${source_name}" "${event}" "${cwd_hint}" "${session_hint}" "${message}" | hash_sha256)"
+now_ts="$(date +%s)"
+if [[ -f "${state_file}" ]]; then
+  read -r prev_ts prev_key < "${state_file}" || true
+  if [[ "${prev_key:-}" == "${dedupe_key}" && "${prev_ts:-}" =~ ^[0-9]+$ ]]; then
+    if (( now_ts - prev_ts < notify_interval )); then
+      exit 0
+    fi
+  fi
+fi
+
+printf '%s %s\n' "${now_ts}" "${dedupe_key}" > "${state_file}"
+chmod 600 "${state_file}"
+
+host_name="$(hostname -f 2>/dev/null || hostname 2>/dev/null || echo unknown-host)"
+user_name="${USER:-unknown-user}"
+now_utc="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+
+text_lines=(
+  "CARL attention needed: ${source_name} (${event})"
+  "host=${host_name}"
+  "user=${user_name}"
+  "cwd=${cwd_hint}"
+  "time_utc=${now_utc}"
+)
+
+if [[ -n "${session_hint}" ]]; then
+  text_lines+=("session=${session_hint}")
+fi
+
+if [[ "${notify_include}" == "1" && -n "${message}" ]]; then
+  text_lines+=("message=$(printf '%.240s' "${message}")")
+fi
+
+slack_payload="$(jq -n --arg text "$(printf '%s\n' "${text_lines[@]}")" '{text: $text}')"
+curl -fsS -X POST -H 'Content-Type: application/json' --data "${slack_payload}" "${SLACK_WEBHOOK_URL}" >/dev/null
+CARL_NOTIFY
+
+  if install -m 0755 "${tmp_script}" "${CARL_NOTIFY_BIN}" 2>/dev/null; then
+    rm -f "${tmp_script}"
+    log "Installed carl-notify to ${CARL_NOTIFY_BIN}"
+    return
+  fi
+
+  CARL_NOTIFY_BIN="${HOME}/.local/bin/carl-notify"
+  install -m 0755 "${tmp_script}" "${CARL_NOTIFY_BIN}"
+  rm -f "${tmp_script}"
+  log "Installed carl-notify to ${CARL_NOTIFY_BIN} (fallback path)"
+}
+
+configure_codex_notify() {
+  local config_file notify_line tui_line tmp_file
+  config_file="${HOME}/.codex/config.toml"
+  mkdir -p "${HOME}/.codex"
+  if [[ ! -f "${config_file}" ]]; then
+    : > "${config_file}"
+  fi
+
+  notify_line="notify = [\"/usr/bin/env\", \"CARL_NOTIFY_ENABLED_DEFAULT=${NOTIFY_ENABLED_DEFAULT}\", \"CARL_NOTIFY_MIN_INTERVAL_SEC_DEFAULT=${NOTIFY_MIN_INTERVAL_SEC_DEFAULT}\", \"CARL_NOTIFY_INCLUDE_SNIPPET_DEFAULT=${NOTIFY_INCLUDE_SNIPPET_DEFAULT}\", \"${CARL_NOTIFY_BIN}\", \"codex\"]"
+  tui_line="tui.notifications = true"
+
+  tmp_file="$(mktemp)"
+  awk \
+    -v notify_line="${notify_line}" \
+    -v tui_line="${tui_line}" \
+    '
+      BEGIN { notify_seen = 0; tui_seen = 0 }
+      /^[[:space:]]*notify[[:space:]]*=/ {
+        if (notify_seen == 0) {
+          print notify_line
+          notify_seen = 1
+        }
+        next
+      }
+      /^[[:space:]]*tui\.notifications[[:space:]]*=/ {
+        if (tui_seen == 0) {
+          print tui_line
+          tui_seen = 1
+        }
+        next
+      }
+      { print }
+      END {
+        if (notify_seen == 0) { print notify_line }
+        if (tui_seen == 0) { print tui_line }
+      }
+    ' "${config_file}" > "${tmp_file}"
+  mv "${tmp_file}" "${config_file}"
+}
+
+configure_claude_notify() {
+  local config_file escaped_notify_bin command_string tmp_file
+  config_file="${HOME}/.claude/settings.json"
+  mkdir -p "${HOME}/.claude"
+  if [[ ! -f "${config_file}" ]]; then
+    printf '{}\n' > "${config_file}"
+  fi
+
+  if ! jq -e . "${config_file}" >/dev/null 2>&1; then
+    die "Invalid JSON in ${config_file}; cannot configure Claude hook."
+  fi
+
+  escaped_notify_bin="$(printf '%q' "${CARL_NOTIFY_BIN}")"
+  command_string="CARL_NOTIFY_ENABLED_DEFAULT=${NOTIFY_ENABLED_DEFAULT} CARL_NOTIFY_MIN_INTERVAL_SEC_DEFAULT=${NOTIFY_MIN_INTERVAL_SEC_DEFAULT} CARL_NOTIFY_INCLUDE_SNIPPET_DEFAULT=${NOTIFY_INCLUDE_SNIPPET_DEFAULT} ${escaped_notify_bin} claude"
+  tmp_file="$(mktemp)"
+
+  jq --arg cmd "${command_string}" '
+    . as $root
+    | if ($root | type) == "object" then $root else {} end
+    | .hooks = (.hooks // {})
+    | .hooks.Notification = (
+        if (.hooks.Notification | type) == "array"
+        then .hooks.Notification
+        else []
+        end
+      )
+    | if ([ .hooks.Notification[]?.hooks[]? | select(.type == "command" and .command == $cmd) ] | length) > 0
+      then .
+      else .hooks.Notification += [
+        {
+          "hooks": [
+            {
+              "type": "command",
+              "command": $cmd
+            }
+          ]
+        }
+      ]
+      end
+  ' "${config_file}" > "${tmp_file}"
+
+  mv "${tmp_file}" "${config_file}"
 }
 
 write_embedded_brewfile() {
@@ -429,6 +703,7 @@ verify_versions() {
   command -v claude >/dev/null 2>&1 || die "claude not found on PATH."
   command -v playwright >/dev/null 2>&1 || die "playwright not found on PATH."
   command -v br >/dev/null 2>&1 || die "br not found on PATH."
+  command -v carl-notify >/dev/null 2>&1 || die "carl-notify not found on PATH."
 
   if [[ "${INSTALL_PNPM}" == "1" ]]; then
     command -v pnpm >/dev/null 2>&1 || die "pnpm not found on PATH."
@@ -514,12 +789,16 @@ main() {
   ensure_homebrew
   load_brew_env
   ensure_local_bin_path
+  validate_notify_defaults
   configure_git_identity
   ensure_ssh_keypair
   write_embedded_brewfile
   brew_bundle_apply
+  install_carl_notify_binary
   install_npm_globals
   install_claude_code
+  configure_codex_notify
+  configure_claude_notify
   install_br
   install_playwright_browsers
   verify_versions

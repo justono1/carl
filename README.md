@@ -22,6 +22,7 @@ It already handles DigitalOcean droplet provisioning and macOS baseline bootstra
 - Bootstraps core tooling on first boot (Node, Codex CLI, Claude Code CLI via native installer, pnpm, Playwright tooling, `br`, `tmux`, build tools, etc.)
 - Bootstraps a fresh macOS arm64 environment with Homebrew + npm-global CLI tooling
 - Ensures machine-local SSH keys exist for general use (`/root/.ssh/id_ed25519` on droplets, `~/.ssh/id_ed25519` on macOS) without overwriting existing keys
+- Installs shared notification wiring so Codex + Claude can send Slack alerts when user input is needed
 - Applies basic hardening (SSH settings + fail2ban)
 - Saves droplet state to `.do-droplet.json` for lifecycle management
 - Destroys the most recently created droplet using saved state
@@ -47,6 +48,9 @@ The intended direction for this repository includes:
 - `macos/bootstrap-mac.sh`: rendered macOS bootstrap artifact
 - `scripts/render-bootstrap-artifacts.sh`: renders Linux/macOS artifacts from top-level `.env`
 - `scripts/push-secrets.sh`: pushes repo-local secrets to droplets/remote hosts
+- `scripts/carl-notify.sh`: shared Slack notifier for Codex/Claude attention events
+- `scripts/configure-codex-notify.sh`: idempotently configures Codex notify command
+- `scripts/configure-claude-notify.sh`: idempotently configures Claude Notification hooks
 - `macos/update-checksums.sh`: helper for regenerating/verifying checksum files
 - `macos/bootstrap-mac.sh.sha256`: checksum file for pinned-source bootstrap verification
 - `docs/secrets.md`: secrets policy and transfer workflows
@@ -131,6 +135,47 @@ mkdir -p ~/.config/carl && install -m 600 /tmp/carl.secrets.env ~/.config/carl/s
 ```
 
 See [docs/secrets.md](docs/secrets.md) for full workflows, macOS VM guidance, and troubleshooting.
+
+## Agent Attention Notifications (Slack)
+
+CARL installs one shared `carl-notify` script and wires:
+
+- Codex `notify` command
+- Claude Notification hook
+
+Both invoke the same script, which posts to a Slack Incoming Webhook when the agent is waiting for input.
+
+### Slack setup
+
+1. In Slack, create or edit an app and enable **Incoming Webhooks**.
+2. Create a webhook for your target channel.
+3. Add the webhook URL to local `./.secrets/secrets.env`:
+
+```dotenv
+SLACK_WEBHOOK_URL=https://hooks.slack.com/services/...
+```
+
+Push secrets to the target machine:
+
+```bash
+./scripts/push-secrets.sh --do-state
+# or
+./scripts/push-secrets.sh --ssh user@host
+```
+
+### Non-secret notifier settings (top-level `.env`)
+
+```dotenv
+NOTIFY_ENABLED=1
+NOTIFY_MIN_INTERVAL_SEC=120
+NOTIFY_INCLUDE_SNIPPET=0
+```
+
+### Manual test on a target machine
+
+```bash
+"$(command -v carl-notify)" codex '{"event":"manual-test","message":"CARL Slack test"}'
+```
 
 ## macOS Bootstrap (arm64)
 
@@ -253,6 +298,9 @@ Pinned bootstrap tool variables include:
 - `PNPM_VERSION`
 - `PLAYWRIGHT_MCP_VERSION`
 - `PLAYWRIGHT_VERSION`
+- `NOTIFY_ENABLED`
+- `NOTIFY_MIN_INTERVAL_SEC`
+- `NOTIFY_INCLUDE_SNIPPET`
 
 `CLAUDE_CODE_VERSION` accepts a Claude installer target (`stable` or a specific version string).
 
