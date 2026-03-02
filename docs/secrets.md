@@ -56,6 +56,10 @@ Equivalent direct call:
 
 Use one destination path regardless of transfer method.
 
+SSH access and SSH key generation are separate:
+- Enabling Remote Login controls whether the Mac accepts inbound SSH connections.
+- A local `~/.ssh/id_ed25519` key only enables outbound auth/signing and does not enable inbound SSH access.
+
 ### GUI transfer (Parallels / screen share)
 
 1. Transfer your local file to `/tmp/carl.secrets.env` on the VM.
@@ -65,10 +69,33 @@ Use one destination path regardless of transfer method.
 mkdir -p ~/.config/carl && install -m 600 /tmp/carl.secrets.env ~/.config/carl/secrets.env && rm -f /tmp/carl.secrets.env
 ```
 
+### Enable SSH on macOS (for SSH/SCP transfer)
+
+1. Open **System Settings > General > Sharing**.
+2. Turn on **Remote Login**.
+3. Choose allowed users.
+
+Verify the SSH service from Terminal:
+
+```bash
+sudo systemsetup -getremotelogin
+nc -vz localhost 22
+```
+
+Find the connectable IP address:
+
+```bash
+ipconfig getifaddr en0
+ipconfig getifaddr en1
+ifconfig | grep "inet " | grep -v 127.0.0.1
+```
+
 ### SSH/SCP transfer
 
 ```bash
 ./scripts/push-secrets.sh --ssh user@host
+# Example:
+./scripts/push-secrets.sh --ssh myuser@192.168.1.50
 ```
 
 ## Rotation

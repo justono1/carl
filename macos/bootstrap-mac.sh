@@ -8,11 +8,8 @@ TMP_BREWFILE=""
 INSTALL_PNPM="${INSTALL_PNPM:-1}"
 INSTALL_PLAYWRIGHT_MCP="${INSTALL_PLAYWRIGHT_MCP:-1}"
 PLAYWRIGHT_BROWSERS="${PLAYWRIGHT_BROWSERS:-chromium}"
-ENABLE_REMOTE_LOGIN_DEFAULT="${ENABLE_REMOTE_LOGIN_DEFAULT:-1}"
 GIT_USER_NAME=""
 GIT_USER_EMAIL=""
-ENABLE_REMOTE_LOGIN_CHOSEN=""
-REMOTE_LOGIN_STATUS="skipped"
 
 CODEX_VERSION="0.104.0"
 CLAUDE_CODE_VERSION="stable"
@@ -63,8 +60,6 @@ Environment variables:
   INSTALL_PLAYWRIGHT_MCP    Set to 0 to skip @playwright/mcp npm-global install.
   CLAUDE_CODE_VERSION       Claude installer target (e.g. stable or a specific version).
   PLAYWRIGHT_BROWSERS       Space-delimited browser list for playwright install (default: chromium).
-  ENABLE_REMOTE_LOGIN_DEFAULT
-                            Set to 0 to default Remote Login prompt to No (default: 1).
   BOOTSTRAP_SOURCE_REF      Optional source metadata written to marker file.
 USAGE
 }
@@ -129,73 +124,6 @@ resolve_git_identity() {
   log "Git identity is required."
   GIT_USER_NAME="$(prompt_required_value "Git user.name" "${default_name}")"
   GIT_USER_EMAIL="$(prompt_required_value "Git user.email" "${default_email}")"
-}
-
-prompt_yes_no() {
-  local prompt default_value answer normalized
-  prompt="$1"
-  default_value="$2"
-
-  while true; do
-    if [[ "${default_value}" == "1" ]]; then
-      read -r -p "${prompt} [Y/n]: " answer
-      answer="${answer:-y}"
-    else
-      read -r -p "${prompt} [y/N]: " answer
-      answer="${answer:-n}"
-    fi
-
-    normalized="$(printf '%s' "${answer}" | tr '[:upper:]' '[:lower:]')"
-    case "${normalized}" in
-      y|yes)
-        return 0
-        ;;
-      n|no)
-        return 1
-        ;;
-      *)
-        printf '[mac-bootstrap] ERROR: Please answer y or n.\n' >&2
-        ;;
-    esac
-  done
-}
-
-resolve_remote_login_preference() {
-  if prompt_yes_no "Enable Remote Login (SSH sharing)?" "${ENABLE_REMOTE_LOGIN_DEFAULT}"; then
-    ENABLE_REMOTE_LOGIN_CHOSEN="1"
-    return
-  fi
-
-  ENABLE_REMOTE_LOGIN_CHOSEN="0"
-}
-
-enable_remote_login_if_requested() {
-  local remote_login_state
-
-  if [[ "${ENABLE_REMOTE_LOGIN_CHOSEN}" != "1" ]]; then
-    REMOTE_LOGIN_STATUS="skipped"
-    log "Skipping Remote Login enablement by user choice."
-    return
-  fi
-
-  log "Enabling Remote Login (SSH sharing)."
-  if ! sudo systemsetup -setremotelogin on; then
-    REMOTE_LOGIN_STATUS="failed"
-    log "WARNING: Failed to enable Remote Login automatically."
-    log "WARNING: Run manually: sudo systemsetup -setremotelogin on"
-    return
-  fi
-
-  remote_login_state="$(sudo systemsetup -getremotelogin 2>/dev/null || true)"
-  if [[ "${remote_login_state}" == *"Remote Login: On"* ]]; then
-    REMOTE_LOGIN_STATUS="enabled"
-    log "Remote Login is enabled."
-    return
-  fi
-
-  REMOTE_LOGIN_STATUS="failed"
-  log "WARNING: Remote Login command ran, but verification did not confirm it is enabled."
-  log "WARNING: Verify manually with: sudo systemsetup -getremotelogin"
 }
 
 configure_git_identity() {
@@ -547,13 +475,12 @@ verify_playwright_browser_cache() {
 }
 
 write_marker() {
-  local completed_at package_set_sha source_ref pnpm_marker playwright_mcp_marker remote_login_requested_marker
+  local completed_at package_set_sha source_ref pnpm_marker playwright_mcp_marker
   completed_at="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
   package_set_sha="$(shasum -a 256 "${TMP_BREWFILE}" | awk '{print $1}')"
   source_ref="${BOOTSTRAP_SOURCE_REF:-unknown}"
   pnpm_marker="${PNPM_VERSION}"
   playwright_mcp_marker="${PLAYWRIGHT_MCP_VERSION}"
-  remote_login_requested_marker="no"
 
   if [[ "${INSTALL_PNPM}" != "1" ]]; then
     pnpm_marker="skipped"
@@ -561,10 +488,6 @@ write_marker() {
 
   if [[ "${INSTALL_PLAYWRIGHT_MCP}" != "1" ]]; then
     playwright_mcp_marker="skipped"
-  fi
-
-  if [[ "${ENABLE_REMOTE_LOGIN_CHOSEN}" == "1" ]]; then
-    remote_login_requested_marker="yes"
   fi
 
   cat > "${MARKER_FILE}" <<MARKER
@@ -580,8 +503,6 @@ pnpm_version=${pnpm_marker}
 playwright_mcp_version=${playwright_mcp_marker}
 playwright_version=${PLAYWRIGHT_VERSION}
 playwright_browsers=${PLAYWRIGHT_BROWSERS}
-remote_login_requested=${remote_login_requested_marker}
-remote_login_status=${REMOTE_LOGIN_STATUS}
 MARKER
 }
 
@@ -589,8 +510,6 @@ main() {
   parse_args "$@"
   ensure_macos_arm64
   resolve_git_identity
-  resolve_remote_login_preference
-  enable_remote_login_if_requested
   ensure_xcode_clt
   ensure_homebrew
   load_brew_env

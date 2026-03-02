@@ -2,7 +2,7 @@
 
 **Code Automation and Runtime Layer**
 
-<p><span style="font-size:1.25em;">🚨⚠️</span> <strong><span style="color:#b00020;">WARNING:</span></strong> This repository can enable macOS Remote Login (SSH) during bootstrap and is intended for controlled/private environments, not internet-exposed hardening.</p>
+<p><span style="font-size:1.25em;">🚨⚠️</span> <strong><span style="color:#b00020;">WARNING:</span></strong> This repository can provision SSH-accessible environments and transfer secrets over SSH. It is intended for controlled/private environments, not internet-exposed hardening.</p>
 
 CARL is a utility for building consistent developer environments across cloud and local machines by:
 
@@ -135,7 +135,7 @@ See [docs/secrets.md](docs/secrets.md) for full workflows, macOS VM guidance, an
 ## macOS Bootstrap (arm64)
 
 This path is intentionally simple: one manual command to bootstrap tooling on a fresh Apple Silicon Mac.
-The script can enable macOS Remote Login (SSH sharing) during setup. No SSH hardening, fail2ban, or background management agents are installed in this flow.
+The script does not enable macOS Remote Login (SSH sharing). If you need inbound SSH access (for example, to use `push-secrets.sh --ssh`), enable it manually in System Settings. No SSH hardening, fail2ban, or background management agents are installed in this flow.
 
 ### Option A: Run from local checkout
 
@@ -171,11 +171,40 @@ BOOTSTRAP_SOURCE_REF="<commit-sha>" bash /tmp/bootstrap-mac.sh
 - Toolchain verification is required before completion (`brew`, `node`, `npm`, `tmux`, `pnpm`, `codex`, `claude`, `playwright`, `br`).
 - Script prompts for Git `user.name` and `user.email` in an interactive terminal session.
 - Script ensures `~/.ssh/id_ed25519` exists for the current user (creates it only when missing).
-- Script prompts to enable Remote Login (SSH sharing); default is Yes (`[Y/n]`).
-- Set `ENABLE_REMOTE_LOGIN_DEFAULT=0` to make the Remote Login prompt default to No (`[y/N]`).
-- If Remote Login enablement fails, bootstrap logs a warning and continues; manual fallback is `sudo systemsetup -setremotelogin on`.
+- SSH key generation and SSH access are different concerns: generating `~/.ssh/id_ed25519` does not enable inbound SSH access to the Mac.
+- If you need inbound SSH access, enable Remote Login manually in macOS UI.
 - `BOOTSTRAP_SOURCE_REF` is optional and only used for marker metadata.
 - Marker file is written to `~/.bootstrap_done` with timestamp + metadata; installs remain idempotent and do not rely on marker state alone.
+
+### Manual Remote Login (SSH) Setup on macOS
+
+Enable SSH server access in macOS UI:
+
+1. Open **System Settings**.
+2. Go to **General > Sharing**.
+3. Turn on **Remote Login**.
+4. Choose which users are allowed to connect.
+
+Verify SSH is enabled from Terminal:
+
+```bash
+sudo systemsetup -getremotelogin
+nc -vz localhost 22
+```
+
+Find the Mac IP address to connect to:
+
+```bash
+ipconfig getifaddr en0
+ipconfig getifaddr en1
+ifconfig | grep "inet " | grep -v 127.0.0.1
+```
+
+Use that address with CARL secrets push:
+
+```bash
+./scripts/push-secrets.sh --ssh <mac-user>@<ip-address>
+```
 
 ### SSH Public Key Output
 
