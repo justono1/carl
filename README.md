@@ -19,7 +19,7 @@ It already handles DigitalOcean droplet provisioning and macOS baseline bootstra
 
 - Creates a DigitalOcean droplet via `doctl`
 - Uses generated bootstrap artifacts rendered from canonical version pins in top-level `.env`
-- Bootstraps core tooling on first boot (Node, Codex CLI, pnpm, Playwright tooling, `br`, build tools, etc.)
+- Bootstraps core tooling on first boot (Node, Codex CLI, Claude Code CLI via native installer, pnpm, Playwright tooling, `br`, `tmux`, build tools, etc.)
 - Bootstraps a fresh macOS arm64 environment with Homebrew + npm-global CLI tooling
 - Applies basic hardening (SSH settings + fail2ban)
 - Saves droplet state to `.do-droplet.json` for lifecycle management
@@ -164,8 +164,9 @@ BOOTSTRAP_SOURCE_REF="<commit-sha>" bash /tmp/bootstrap-mac.sh
 - Script installs Xcode Command Line Tools and Homebrew if needed.
 - The recommended command downloads the script to `/tmp` and executes it (instead of `curl | bash`) so interactive install prompts behave correctly.
 - Homebrew package list is embedded in the script (single fixed profile; no alternate Brewfile path).
+- Claude Code is installed via the official native installer (`claude.ai/install.sh`); npm install is deprecated upstream.
 - Script installs `br` (beads) from GitHub release assets using the pinned rendered version.
-- Toolchain verification is required before completion (`brew`, `node`, `npm`, `pnpm`, `codex`, `playwright`, `br`).
+- Toolchain verification is required before completion (`brew`, `node`, `npm`, `tmux`, `pnpm`, `codex`, `claude`, `playwright`, `br`).
 - Script prompts for Git `user.name` and `user.email` in an interactive terminal session.
 - Script prompts to enable Remote Login (SSH sharing); default is Yes (`[Y/n]`).
 - Set `ENABLE_REMOTE_LOGIN_DEFAULT=0` to make the Remote Login prompt default to No (`[y/N]`).
@@ -198,6 +199,18 @@ Top-level `.env` controls:
 - state file and SSH key selection (`STATE_FILE`, `SSH_KEY_ID`, `SSH_KEY_NAME_MATCH`)
 
 Bootstrap/tool versions are pinned in top-level `.env` and compiled into rendered artifacts.
+
+Pinned bootstrap tool variables include:
+
+- `NODE_MAJOR`
+- `CODEX_VERSION`
+- `CLAUDE_CODE_VERSION`
+- `BR_VERSION`
+- `PNPM_VERSION`
+- `PLAYWRIGHT_MCP_VERSION`
+- `PLAYWRIGHT_VERSION`
+
+`CLAUDE_CODE_VERSION` accepts a Claude installer target (`stable` or a specific version string).
 
 `create-droplet.sh` runtime controls:
 

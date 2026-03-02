@@ -15,6 +15,7 @@ ENABLE_REMOTE_LOGIN_CHOSEN=""
 REMOTE_LOGIN_STATUS="skipped"
 
 CODEX_VERSION="@CODEX_VERSION@"
+CLAUDE_CODE_VERSION="@CLAUDE_CODE_VERSION@"
 BR_VERSION="@BR_VERSION@"
 PNPM_VERSION="@PNPM_VERSION@"
 PLAYWRIGHT_MCP_VERSION="@PLAYWRIGHT_MCP_VERSION@"
@@ -60,6 +61,7 @@ Usage:
 Environment variables:
   INSTALL_PNPM              Set to 0 to skip pnpm npm-global install.
   INSTALL_PLAYWRIGHT_MCP    Set to 0 to skip @playwright/mcp npm-global install.
+  CLAUDE_CODE_VERSION       Claude installer target (e.g. stable or a specific version).
   PLAYWRIGHT_BROWSERS       Space-delimited browser list for playwright install (default: chromium).
   ENABLE_REMOTE_LOGIN_DEFAULT
                             Set to 0 to default Remote Login prompt to No (default: 1).
@@ -247,6 +249,7 @@ brew "jq"
 brew "ripgrep"
 brew "wget"
 brew "rsync"
+brew "tmux"
 brew "cmake"
 brew "ninja"
 brew "pkg-config"
@@ -316,6 +319,45 @@ install_npm_globals() {
   fi
 }
 
+ensure_claude_on_path() {
+  if command -v claude >/dev/null 2>&1; then
+    return 0
+  fi
+
+  if [[ -x "${HOME}/.local/bin/claude" ]]; then
+    export PATH="${HOME}/.local/bin:${PATH}"
+  fi
+
+  command -v claude >/dev/null 2>&1
+}
+
+claude_native_satisfied() {
+  local installed
+
+  if ! ensure_claude_on_path; then
+    return 1
+  fi
+
+  if [[ "${CLAUDE_CODE_VERSION}" == "stable" || "${CLAUDE_CODE_VERSION}" == "latest" ]]; then
+    return 0
+  fi
+
+  installed="$(claude --version 2>/dev/null || true)"
+  [[ "${installed}" == *"${CLAUDE_CODE_VERSION}"* ]]
+}
+
+install_claude_code() {
+  if claude_native_satisfied; then
+    log "Claude Code (${CLAUDE_CODE_VERSION}) already satisfied; skipping."
+    return
+  fi
+
+  log "Installing Claude Code via native installer (${CLAUDE_CODE_VERSION})"
+  curl -fsSL https://claude.ai/install.sh | bash -s -- "${CLAUDE_CODE_VERSION}"
+
+  ensure_claude_on_path || die "claude not found on PATH after install."
+}
+
 install_br() {
   local existing_version br_tag release_api asset_url tmp_dir br_bin brew_prefix install_dir
 
@@ -373,7 +415,9 @@ verify_versions() {
   command -v brew >/dev/null 2>&1 || die "brew not found on PATH."
   command -v node >/dev/null 2>&1 || die "node not found on PATH."
   command -v npm >/dev/null 2>&1 || die "npm not found on PATH."
+  command -v tmux >/dev/null 2>&1 || die "tmux not found on PATH."
   command -v codex >/dev/null 2>&1 || die "codex not found on PATH."
+  command -v claude >/dev/null 2>&1 || die "claude not found on PATH."
   command -v playwright >/dev/null 2>&1 || die "playwright not found on PATH."
   command -v br >/dev/null 2>&1 || die "br not found on PATH."
 
@@ -384,12 +428,14 @@ verify_versions() {
   brew --version
   node --version
   npm --version
+  tmux -V
 
   if [[ "${INSTALL_PNPM}" == "1" ]]; then
     pnpm --version
   fi
 
   codex --version
+  claude --version
   playwright --version
   br --version
 }
@@ -447,6 +493,7 @@ source_ref=${source_ref}
 brew_profile=embedded-default
 brew_profile_sha256=${package_set_sha}
 codex_version=${CODEX_VERSION}
+claude_code_target=${CLAUDE_CODE_VERSION}
 br_version=${BR_VERSION}
 pnpm_version=${pnpm_marker}
 playwright_mcp_version=${playwright_mcp_marker}
@@ -470,6 +517,7 @@ main() {
   write_embedded_brewfile
   brew_bundle_apply
   install_npm_globals
+  install_claude_code
   install_br
   install_playwright_browsers
   verify_versions
@@ -477,7 +525,7 @@ main() {
   write_marker
 
   log "Bootstrap complete. Marker written to ${MARKER_FILE}."
-  log "If node/npm/codex are not found in your current shell, run: eval \"$(/opt/homebrew/bin/brew shellenv)\""
+  log "If node/npm/codex/claude are not found in your current shell, run: eval \"$(/opt/homebrew/bin/brew shellenv)\""
 }
 
 main "$@"

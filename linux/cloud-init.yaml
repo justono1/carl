@@ -16,6 +16,7 @@ packages:
   - bash
   - git
   - openssh-client
+  - tmux
   - ripgrep
   - build-essential
   - clang
@@ -94,6 +95,7 @@ write_files:
 
       NODE_MAJOR="$(resolve_template_value "24" "24")"
       CODEX_VERSION="$(resolve_template_value "0.104.0" "0.104.0")"
+      CLAUDE_CODE_VERSION="$(resolve_template_value "stable" "stable")"
       BR_VERSION="$(resolve_template_value "0.1.7" "0.1.7")"
       PNPM_VERSION="$(resolve_template_value "10.30.1" "10.30.1")"
       PLAYWRIGHT_MCP_VERSION="$(resolve_template_value "0.0.68" "0.0.68")"
@@ -142,6 +144,11 @@ write_files:
       npm install -g "@openai/codex@${CODEX_VERSION}"
       codex --version
 
+      log "Installing Claude Code via native installer (${CLAUDE_CODE_VERSION})"
+      curl -fsSL https://claude.ai/install.sh | bash -s -- "${CLAUDE_CODE_VERSION}"
+      export PATH="/root/.local/bin:${PATH}"
+      claude --version
+
       log "Installing pnpm (${PNPM_VERSION})"
       npm install -g "pnpm@${PNPM_VERSION}"
       pnpm --version
@@ -183,6 +190,8 @@ write_files:
       install -m 0755 "${br_bin}" /usr/local/bin/br
       rm -rf "${tmp_dir}"
       br --version
+
+      tmux -V
 
       log "Bootstrap complete"
 

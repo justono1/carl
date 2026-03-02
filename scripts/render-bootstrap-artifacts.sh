@@ -12,6 +12,7 @@ MAC_OUTPUT_FILE="${MAC_OUTPUT_FILE:-$REPO_ROOT/macos/bootstrap-mac.sh}"
 
 DEFAULT_NODE_MAJOR="24"
 DEFAULT_CODEX_VERSION="0.104.0"
+DEFAULT_CLAUDE_CODE_VERSION="stable"
 DEFAULT_BR_VERSION="0.1.12"
 DEFAULT_PNPM_VERSION="10.30.1"
 DEFAULT_PLAYWRIGHT_MCP_VERSION="0.0.68"
@@ -34,6 +35,7 @@ validate_versions() {
   required_vars=(
     NODE_MAJOR
     CODEX_VERSION
+    CLAUDE_CODE_VERSION
     BR_VERSION
     PNPM_VERSION
     PLAYWRIGHT_MCP_VERSION
@@ -57,6 +59,7 @@ validate_versions() {
 load_default_versions() {
   NODE_MAJOR="$DEFAULT_NODE_MAJOR"
   CODEX_VERSION="$DEFAULT_CODEX_VERSION"
+  CLAUDE_CODE_VERSION="$DEFAULT_CLAUDE_CODE_VERSION"
   BR_VERSION="$DEFAULT_BR_VERSION"
   PNPM_VERSION="$DEFAULT_PNPM_VERSION"
   PLAYWRIGHT_MCP_VERSION="$DEFAULT_PLAYWRIGHT_MCP_VERSION"
@@ -71,6 +74,7 @@ render_versions() {
   sed \
     -e "s/@NODE_MAJOR@/$(escape_sed_replacement "$NODE_MAJOR")/g" \
     -e "s/@CODEX_VERSION@/$(escape_sed_replacement "$CODEX_VERSION")/g" \
+    -e "s/@CLAUDE_CODE_VERSION@/$(escape_sed_replacement "$CLAUDE_CODE_VERSION")/g" \
     -e "s/@BR_VERSION@/$(escape_sed_replacement "$BR_VERSION")/g" \
     -e "s/@PNPM_VERSION@/$(escape_sed_replacement "$PNPM_VERSION")/g" \
     -e "s/@PLAYWRIGHT_MCP_VERSION@/$(escape_sed_replacement "$PLAYWRIGHT_MCP_VERSION")/g" \
