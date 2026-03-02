@@ -337,6 +337,8 @@ install_npm_globals() {
 }
 
 ensure_claude_on_path() {
+  ensure_standard_cli_symlinks
+
   if command -v claude >/dev/null 2>&1; then
     return 0
   fi
@@ -348,9 +350,34 @@ ensure_claude_on_path() {
   command -v claude >/dev/null 2>&1
 }
 
+ensure_brew_bin_symlink() {
+  local src_path link_name brew_prefix dst_path
+  src_path="$1"
+  link_name="$2"
+
+  [[ -x "${src_path}" ]] || return 0
+
+  brew_prefix="$(brew --prefix 2>/dev/null || true)"
+  [[ -n "${brew_prefix}" ]] || return 0
+
+  dst_path="${brew_prefix}/bin/${link_name}"
+
+  if [[ -e "${dst_path}" && ! -L "${dst_path}" ]]; then
+    return 0
+  fi
+
+  ln -sfn "${src_path}" "${dst_path}"
+}
+
+ensure_standard_cli_symlinks() {
+  # Central place for user-local -> Homebrew bin shims needed for login shell UX.
+  ensure_brew_bin_symlink "${HOME}/.local/bin/claude" "claude"
+}
+
 claude_native_satisfied() {
   local installed
 
+  ensure_standard_cli_symlinks
   if ! ensure_claude_on_path; then
     return 1
   fi
@@ -372,6 +399,7 @@ install_claude_code() {
   log "Installing Claude Code via native installer (${CLAUDE_CODE_VERSION})"
   curl -fsSL https://claude.ai/install.sh | bash -s -- "${CLAUDE_CODE_VERSION}"
 
+  ensure_standard_cli_symlinks
   ensure_claude_on_path || die "claude not found on PATH after install."
 }
 
@@ -543,7 +571,10 @@ main() {
   write_marker
 
   log "Bootstrap complete. Marker written to ${MARKER_FILE}."
-  log "If node/npm/codex/claude are not found in your current shell, run: eval \"$(/opt/homebrew/bin/brew shellenv)\""
+  log "If node/npm/codex/claude are not found in your current shell, run:"
+  log '  eval "$(/opt/homebrew/bin/brew shellenv)"'
+  log '  export PATH="$HOME/.local/bin:$PATH"'
+  log "  hash -r"
 }
 
 main "$@"
