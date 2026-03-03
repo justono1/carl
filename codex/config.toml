@@ -4,7 +4,7 @@ model_provider = "openai"
 # Allow automatic writes/commands in workspace.
 # Protected actions remain governed by the runtime policy in use.
 approval_policy = "never"
-sandbox_mode = "workspace-write"
+sandbox_mode = "danger-full-access"
 
 model_reasoning_effort = "xhigh"
 model_reasoning_summary = "detailed"
