@@ -1,4 +1,32 @@
-# CARL canonical Codex configuration.
-# Notification wiring is enforced by scripts/configure-codex-notify.sh.
+model = "gpt-5.3-codex"
+model_provider = "openai"
 
+# Allow automatic writes/commands in workspace.
+# Protected actions remain governed by the runtime policy in use.
+approval_policy = "never"
+sandbox_mode = "workspace-write"
+
+model_reasoning_effort = "xhigh"
+model_reasoning_summary = "detailed"
+preferred_auth_method = "chatgpt"
+
+[mcp_servers.playwright]
+command = "npx"
+startup_timeout_sec = 60
+args = [
+  "@playwright/mcp@0.0.68",
+  "--isolated"
+]
+
+[notice]
+hide_rate_limit_model_nudge = true
+
+[notice.model_migrations]
+"gpt-5.2" = "gpt-5.2-codex"
+
+[features]
+multi_agent = false
+
+# Skills are intentionally omitted for now in CARL.
+# Notification wiring is managed by scripts/configure-codex-notify.sh.
 tui.notifications = true
