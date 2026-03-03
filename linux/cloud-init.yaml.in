@@ -106,6 +106,8 @@ write_files:
       NOTIFY_INCLUDE_SNIPPET_DEFAULT="$(resolve_template_value "@NOTIFY_INCLUDE_SNIPPET@" "@NOTIFY_INCLUDE_SNIPPET@")"
       CODEX_CONFIG_TOML_B64="$(resolve_template_value "@CODEX_CONFIG_TOML_B64@" "@CODEX_CONFIG_TOML_B64@")"
       CLAUDE_SETTINGS_JSON_B64="$(resolve_template_value "@CLAUDE_SETTINGS_JSON_B64@" "@CLAUDE_SETTINGS_JSON_B64@")"
+      CLAUDE_KEYBINDINGS_JSON_B64="$(resolve_template_value "@CLAUDE_KEYBINDINGS_JSON_B64@" "@CLAUDE_KEYBINDINGS_JSON_B64@")"
+      CLAUDE_MCP_JSON_B64="$(resolve_template_value "@CLAUDE_MCP_JSON_B64@" "@CLAUDE_MCP_JSON_B64@")"
       NPMRC_B64="$(resolve_template_value "@NPMRC_B64@" "@NPMRC_B64@")"
       NVMRC_B64="$(resolve_template_value "@NVMRC_B64@" "@NVMRC_B64@")"
       GIT_USER_NAME_B64="$(resolve_template_value "@GIT_USER_NAME_B64@" "")"
@@ -141,9 +143,21 @@ write_files:
         decode_b64_to_file "${NVMRC_B64}" "/workspace/main/.nvmrc" 0644
         decode_b64_to_file "${CODEX_CONFIG_TOML_B64}" "/root/.codex/config.toml" 0644
         decode_b64_to_file "${CLAUDE_SETTINGS_JSON_B64}" "/root/.claude/settings.json" 0644
+        decode_b64_to_file "${CLAUDE_KEYBINDINGS_JSON_B64}" "/root/.claude/keybindings.json" 0644
+        decode_b64_to_file "${CLAUDE_MCP_JSON_B64}" "/root/.claude/mcp.json" 0644
 
         if ! jq -e . /root/.claude/settings.json >/dev/null 2>&1; then
           echo "Embedded Claude settings JSON is invalid." >&2
+          exit 1
+        fi
+
+        if ! jq -e . /root/.claude/keybindings.json >/dev/null 2>&1; then
+          echo "Embedded Claude keybindings JSON is invalid." >&2
+          exit 1
+        fi
+
+        if ! jq -e . /root/.claude/mcp.json >/dev/null 2>&1; then
+          echo "Embedded Claude MCP JSON is invalid." >&2
           exit 1
         fi
       }

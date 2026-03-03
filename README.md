@@ -59,7 +59,7 @@ See [docs/config-architecture.md](docs/config-architecture.md) for load model an
 - `playwright/env`: Playwright pinned versions
 - `br/env`: `br` pinned version
 - `codex/env`, `codex/config.toml`: Codex CLI version + canonical config
-- `claude/env`, `claude/settings.json`: Claude installer target + canonical settings
+- `claude/env`, `claude/settings.json`, `claude/keybindings.json`, `claude/mcp.json`: Claude installer target + canonical settings/keybindings/mcp config
 - `notify/env`: non-secret notifier defaults
 
 ### Documentation and CI

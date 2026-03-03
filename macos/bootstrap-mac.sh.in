@@ -23,6 +23,8 @@ NOTIFY_INCLUDE_SNIPPET_DEFAULT="@NOTIFY_INCLUDE_SNIPPET@"
 CARL_NOTIFY_BIN="/usr/local/bin/carl-notify"
 CODEX_CONFIG_TOML_B64="@CODEX_CONFIG_TOML_B64@"
 CLAUDE_SETTINGS_JSON_B64="@CLAUDE_SETTINGS_JSON_B64@"
+CLAUDE_KEYBINDINGS_JSON_B64="@CLAUDE_KEYBINDINGS_JSON_B64@"
+CLAUDE_MCP_JSON_B64="@CLAUDE_MCP_JSON_B64@"
 NPMRC_B64="@NPMRC_B64@"
 NVMRC_B64="@NVMRC_B64@"
 
@@ -244,9 +246,19 @@ install_baseline_config_files() {
   decode_b64_to_file "${NVMRC_B64}" "${HOME}/.nvmrc" 0644
   decode_b64_to_file "${CODEX_CONFIG_TOML_B64}" "${HOME}/.codex/config.toml" 0644
   decode_b64_to_file "${CLAUDE_SETTINGS_JSON_B64}" "${HOME}/.claude/settings.json" 0644
+  decode_b64_to_file "${CLAUDE_KEYBINDINGS_JSON_B64}" "${HOME}/.claude/keybindings.json" 0644
+  decode_b64_to_file "${CLAUDE_MCP_JSON_B64}" "${HOME}/.claude/mcp.json" 0644
 
   if ! jq -e . "${HOME}/.claude/settings.json" >/dev/null 2>&1; then
     die "Embedded Claude settings JSON is invalid."
+  fi
+
+  if ! jq -e . "${HOME}/.claude/keybindings.json" >/dev/null 2>&1; then
+    die "Embedded Claude keybindings JSON is invalid."
+  fi
+
+  if ! jq -e . "${HOME}/.claude/mcp.json" >/dev/null 2>&1; then
+    die "Embedded Claude MCP JSON is invalid."
   fi
 }
 

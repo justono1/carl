@@ -14,7 +14,7 @@ Each domain can contain:
 Examples:
 
 - `codex/env` and `codex/config.toml`
-- `claude/env` and `claude/settings.json`
+- `claude/env`, `claude/settings.json`, `claude/keybindings.json`, and `claude/mcp.json`
 - `node/env` and `node/.nvmrc`
 - `npm/env` and `npm/.npmrc`
 
@@ -54,6 +54,7 @@ Render inputs:
 
 - domain `env` values (versions/defaults)
 - canonical config files (`codex/config.toml`, `claude/settings.json`, `npm/.npmrc`, `node/.nvmrc`)
+  plus `claude/keybindings.json` and `claude/mcp.json`
 
 The canonical config files are embedded into rendered artifacts (base64) and installed on target machines during bootstrap.
 
@@ -65,6 +66,8 @@ The canonical config files are embedded into rendered artifacts (base64) and ins
 - Writes canonical configs to:
   - `/root/.codex/config.toml`
   - `/root/.claude/settings.json`
+  - `/root/.claude/keybindings.json`
+  - `/root/.claude/mcp.json`
   - `/root/.npmrc`
   - `/root/.nvmrc`
   - `/workspace/main/.nvmrc`
@@ -76,6 +79,8 @@ The canonical config files are embedded into rendered artifacts (base64) and ins
 - Writes canonical configs to:
   - `~/.codex/config.toml`
   - `~/.claude/settings.json`
+  - `~/.claude/keybindings.json`
+  - `~/.claude/mcp.json`
   - `~/.npmrc`
   - `~/.nvmrc`
 - Applies notifier wiring for Codex/Claude after baseline files are installed.

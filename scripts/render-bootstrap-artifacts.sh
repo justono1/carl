@@ -22,6 +22,8 @@ NOTIFY_ENV_FILE="${NOTIFY_ENV_FILE:-$REPO_ROOT/notify/env}"
 
 CODEX_CONFIG_SOURCE="${CODEX_CONFIG_SOURCE:-$REPO_ROOT/codex/config.toml}"
 CLAUDE_SETTINGS_SOURCE="${CLAUDE_SETTINGS_SOURCE:-$REPO_ROOT/claude/settings.json}"
+CLAUDE_KEYBINDINGS_SOURCE="${CLAUDE_KEYBINDINGS_SOURCE:-$REPO_ROOT/claude/keybindings.json}"
+CLAUDE_MCP_SOURCE="${CLAUDE_MCP_SOURCE:-$REPO_ROOT/claude/mcp.json}"
 NPMRC_SOURCE="${NPMRC_SOURCE:-$REPO_ROOT/npm/.npmrc}"
 NVMRC_SOURCE="${NVMRC_SOURCE:-$REPO_ROOT/node/.nvmrc}"
 
@@ -99,6 +101,8 @@ validate_source_files() {
     "$MAC_TEMPLATE_FILE" \
     "$CODEX_CONFIG_SOURCE" \
     "$CLAUDE_SETTINGS_SOURCE" \
+    "$CLAUDE_KEYBINDINGS_SOURCE" \
+    "$CLAUDE_MCP_SOURCE" \
     "$NPMRC_SOURCE" \
     "$NVMRC_SOURCE"; do
     if [[ ! -f "$source_file" ]]; then
@@ -127,6 +131,8 @@ render_versions() {
     -e "s/@NOTIFY_INCLUDE_SNIPPET@/$(escape_sed_replacement "$NOTIFY_INCLUDE_SNIPPET")/g" \
     -e "s/@CODEX_CONFIG_TOML_B64@/$(escape_sed_replacement "$CODEX_CONFIG_TOML_B64")/g" \
     -e "s/@CLAUDE_SETTINGS_JSON_B64@/$(escape_sed_replacement "$CLAUDE_SETTINGS_JSON_B64")/g" \
+    -e "s/@CLAUDE_KEYBINDINGS_JSON_B64@/$(escape_sed_replacement "$CLAUDE_KEYBINDINGS_JSON_B64")/g" \
+    -e "s/@CLAUDE_MCP_JSON_B64@/$(escape_sed_replacement "$CLAUDE_MCP_JSON_B64")/g" \
     -e "s/@NPMRC_B64@/$(escape_sed_replacement "$NPMRC_B64")/g" \
     -e "s/@NVMRC_B64@/$(escape_sed_replacement "$NVMRC_B64")/g" \
     "$template_file" > "$output_file"
@@ -177,6 +183,8 @@ validate_source_files
 
 CODEX_CONFIG_TOML_B64="$(file_b64_no_newline "$CODEX_CONFIG_SOURCE")"
 CLAUDE_SETTINGS_JSON_B64="$(file_b64_no_newline "$CLAUDE_SETTINGS_SOURCE")"
+CLAUDE_KEYBINDINGS_JSON_B64="$(file_b64_no_newline "$CLAUDE_KEYBINDINGS_SOURCE")"
+CLAUDE_MCP_JSON_B64="$(file_b64_no_newline "$CLAUDE_MCP_SOURCE")"
 NPMRC_B64="$(file_b64_no_newline "$NPMRC_SOURCE")"
 NVMRC_B64="$(file_b64_no_newline "$NVMRC_SOURCE")"
 

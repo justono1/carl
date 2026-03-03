@@ -105,7 +105,9 @@ write_files:
       NOTIFY_MIN_INTERVAL_SEC_DEFAULT="$(resolve_template_value "120" "120")"
       NOTIFY_INCLUDE_SNIPPET_DEFAULT="$(resolve_template_value "1" "1")"
       CODEX_CONFIG_TOML_B64="$(resolve_template_value "bW9kZWwgPSAiZ3B0LTUuMy1jb2RleCIKbW9kZWxfcHJvdmlkZXIgPSAib3BlbmFpIgoKIyBBbGxvdyBhdXRvbWF0aWMgd3JpdGVzL2NvbW1hbmRzIGluIHdvcmtzcGFjZS4KIyBQcm90ZWN0ZWQgYWN0aW9ucyByZW1haW4gZ292ZXJuZWQgYnkgdGhlIHJ1bnRpbWUgcG9saWN5IGluIHVzZS4KYXBwcm92YWxfcG9saWN5ID0gIm5ldmVyIgpzYW5kYm94X21vZGUgPSAid29ya3NwYWNlLXdyaXRlIgoKbW9kZWxfcmVhc29uaW5nX2VmZm9ydCA9ICJ4aGlnaCIKbW9kZWxfcmVhc29uaW5nX3N1bW1hcnkgPSAiZGV0YWlsZWQiCnByZWZlcnJlZF9hdXRoX21ldGhvZCA9ICJjaGF0Z3B0IgoKW21jcF9zZXJ2ZXJzLnBsYXl3cmlnaHRdCmNvbW1hbmQgPSAibnB4IgpzdGFydHVwX3RpbWVvdXRfc2VjID0gNjAKYXJncyA9IFsKICAiQHBsYXl3cmlnaHQvbWNwQDAuMC42OCIsCiAgIi0taXNvbGF0ZWQiCl0KCltub3RpY2VdCmhpZGVfcmF0ZV9saW1pdF9tb2RlbF9udWRnZSA9IHRydWUKCltub3RpY2UubW9kZWxfbWlncmF0aW9uc10KImdwdC01LjIiID0gImdwdC01LjItY29kZXgiCgpbZmVhdHVyZXNdCm11bHRpX2FnZW50ID0gZmFsc2UKCiMgU2tpbGxzIGFyZSBpbnRlbnRpb25hbGx5IG9taXR0ZWQgZm9yIG5vdyBpbiBDQVJMLgojIE5vdGlmaWNhdGlvbiB3aXJpbmcgaXMgbWFuYWdlZCBieSBzY3JpcHRzL2NvbmZpZ3VyZS1jb2RleC1ub3RpZnkuc2guCnR1aS5ub3RpZmljYXRpb25zID0gdHJ1ZQo=" "bW9kZWwgPSAiZ3B0LTUuMy1jb2RleCIKbW9kZWxfcHJvdmlkZXIgPSAib3BlbmFpIgoKIyBBbGxvdyBhdXRvbWF0aWMgd3JpdGVzL2NvbW1hbmRzIGluIHdvcmtzcGFjZS4KIyBQcm90ZWN0ZWQgYWN0aW9ucyByZW1haW4gZ292ZXJuZWQgYnkgdGhlIHJ1bnRpbWUgcG9saWN5IGluIHVzZS4KYXBwcm92YWxfcG9saWN5ID0gIm5ldmVyIgpzYW5kYm94X21vZGUgPSAid29ya3NwYWNlLXdyaXRlIgoKbW9kZWxfcmVhc29uaW5nX2VmZm9ydCA9ICJ4aGlnaCIKbW9kZWxfcmVhc29uaW5nX3N1bW1hcnkgPSAiZGV0YWlsZWQiCnByZWZlcnJlZF9hdXRoX21ldGhvZCA9ICJjaGF0Z3B0IgoKW21jcF9zZXJ2ZXJzLnBsYXl3cmlnaHRdCmNvbW1hbmQgPSAibnB4IgpzdGFydHVwX3RpbWVvdXRfc2VjID0gNjAKYXJncyA9IFsKICAiQHBsYXl3cmlnaHQvbWNwQDAuMC42OCIsCiAgIi0taXNvbGF0ZWQiCl0KCltub3RpY2VdCmhpZGVfcmF0ZV9saW1pdF9tb2RlbF9udWRnZSA9IHRydWUKCltub3RpY2UubW9kZWxfbWlncmF0aW9uc10KImdwdC01LjIiID0gImdwdC01LjItY29kZXgiCgpbZmVhdHVyZXNdCm11bHRpX2FnZW50ID0gZmFsc2UKCiMgU2tpbGxzIGFyZSBpbnRlbnRpb25hbGx5IG9taXR0ZWQgZm9yIG5vdyBpbiBDQVJMLgojIE5vdGlmaWNhdGlvbiB3aXJpbmcgaXMgbWFuYWdlZCBieSBzY3JpcHRzL2NvbmZpZ3VyZS1jb2RleC1ub3RpZnkuc2guCnR1aS5ub3RpZmljYXRpb25zID0gdHJ1ZQo=")"
-      CLAUDE_SETTINGS_JSON_B64="$(resolve_template_value "ewogICJob29rcyI6IHt9Cn0K" "ewogICJob29rcyI6IHt9Cn0K")"
+      CLAUDE_SETTINGS_JSON_B64="$(resolve_template_value "ewogICIkc2NoZW1hIjogImh0dHBzOi8vanNvbi5zY2hlbWFzdG9yZS5vcmcvY2xhdWRlLWNvZGUtc2V0dGluZ3MuanNvbiIsCiAgInNwaW5uZXJWZXJicyI6IHsKICAgICJtb2RlIjogInJlcGxhY2UiLAogICAgInZlcmJzIjogWwogICAgICAiVGhpbmtpbmciCiAgICBdCiAgfQp9Cg==" "ewogICIkc2NoZW1hIjogImh0dHBzOi8vanNvbi5zY2hlbWFzdG9yZS5vcmcvY2xhdWRlLWNvZGUtc2V0dGluZ3MuanNvbiIsCiAgInNwaW5uZXJWZXJicyI6IHsKICAgICJtb2RlIjogInJlcGxhY2UiLAogICAgInZlcmJzIjogWwogICAgICAiVGhpbmtpbmciCiAgICBdCiAgfQp9Cg==")"
+      CLAUDE_KEYBINDINGS_JSON_B64="$(resolve_template_value "ewogICIkc2NoZW1hIjogImh0dHBzOi8vd3d3LnNjaGVtYXN0b3JlLm9yZy9jbGF1ZGUtY29kZS1rZXliaW5kaW5ncy5qc29uIiwKICAiJGRvY3MiOiAiaHR0cHM6Ly9jb2RlLmNsYXVkZS5jb20vZG9jcy9lbi9rZXliaW5kaW5ncyIsCiAgImJpbmRpbmdzIjogWwogICAgewogICAgICAiY29udGV4dCI6ICJDaGF0IiwKICAgICAgImJpbmRpbmdzIjogewogICAgICAgICJzaGlmdCtlbnRlciI6ICJjaGF0Om5ld2xpbmUiCiAgICAgIH0KICAgIH0KICBdCn0K" "ewogICIkc2NoZW1hIjogImh0dHBzOi8vd3d3LnNjaGVtYXN0b3JlLm9yZy9jbGF1ZGUtY29kZS1rZXliaW5kaW5ncy5qc29uIiwKICAiJGRvY3MiOiAiaHR0cHM6Ly9jb2RlLmNsYXVkZS5jb20vZG9jcy9lbi9rZXliaW5kaW5ncyIsCiAgImJpbmRpbmdzIjogWwogICAgewogICAgICAiY29udGV4dCI6ICJDaGF0IiwKICAgICAgImJpbmRpbmdzIjogewogICAgICAgICJzaGlmdCtlbnRlciI6ICJjaGF0Om5ld2xpbmUiCiAgICAgIH0KICAgIH0KICBdCn0K")"
+      CLAUDE_MCP_JSON_B64="$(resolve_template_value "ewogICJtY3BTZXJ2ZXJzIjogewogICAgInBsYXl3cmlnaHQiOiB7CiAgICAgICJ0eXBlIjogInN0ZGlvIiwKICAgICAgImNvbW1hbmQiOiAibnB4IiwKICAgICAgImFyZ3MiOiBbCiAgICAgICAgIkBwbGF5d3JpZ2h0L21jcEAwLjAuNjgiLAogICAgICAgICItLWlzb2xhdGVkIiwKICAgICAgICAiLS1vdXRwdXQtZGlyIiwKICAgICAgICAiL3RtcC9wbGF5d3JpZ2h0LW1jcCIKICAgICAgXSwKICAgICAgImVudiI6IHt9CiAgICB9CiAgfQp9Cg==" "ewogICJtY3BTZXJ2ZXJzIjogewogICAgInBsYXl3cmlnaHQiOiB7CiAgICAgICJ0eXBlIjogInN0ZGlvIiwKICAgICAgImNvbW1hbmQiOiAibnB4IiwKICAgICAgImFyZ3MiOiBbCiAgICAgICAgIkBwbGF5d3JpZ2h0L21jcEAwLjAuNjgiLAogICAgICAgICItLWlzb2xhdGVkIiwKICAgICAgICAiLS1vdXRwdXQtZGlyIiwKICAgICAgICAiL3RtcC9wbGF5d3JpZ2h0LW1jcCIKICAgICAgXSwKICAgICAgImVudiI6IHt9CiAgICB9CiAgfQp9Cg==")"
       NPMRC_B64="$(resolve_template_value "IyBDQVJMIGNhbm9uaWNhbCBucG0gY29uZmlndXJhdGlvbgojIEFkZCBzaGFyZWQgbnBtIHNldHRpbmdzIGhlcmUgd2hlbiBuZWVkZWQuCg==" "IyBDQVJMIGNhbm9uaWNhbCBucG0gY29uZmlndXJhdGlvbgojIEFkZCBzaGFyZWQgbnBtIHNldHRpbmdzIGhlcmUgd2hlbiBuZWVkZWQuCg==")"
       NVMRC_B64="$(resolve_template_value "MjQK" "MjQK")"
       GIT_USER_NAME_B64="$(resolve_template_value "@GIT_USER_NAME_B64@" "")"
@@ -141,9 +143,21 @@ write_files:
         decode_b64_to_file "${NVMRC_B64}" "/workspace/main/.nvmrc" 0644
         decode_b64_to_file "${CODEX_CONFIG_TOML_B64}" "/root/.codex/config.toml" 0644
         decode_b64_to_file "${CLAUDE_SETTINGS_JSON_B64}" "/root/.claude/settings.json" 0644
+        decode_b64_to_file "${CLAUDE_KEYBINDINGS_JSON_B64}" "/root/.claude/keybindings.json" 0644
+        decode_b64_to_file "${CLAUDE_MCP_JSON_B64}" "/root/.claude/mcp.json" 0644
 
         if ! jq -e . /root/.claude/settings.json >/dev/null 2>&1; then
           echo "Embedded Claude settings JSON is invalid." >&2
+          exit 1
+        fi
+
+        if ! jq -e . /root/.claude/keybindings.json >/dev/null 2>&1; then
+          echo "Embedded Claude keybindings JSON is invalid." >&2
+          exit 1
+        fi
+
+        if ! jq -e . /root/.claude/mcp.json >/dev/null 2>&1; then
+          echo "Embedded Claude MCP JSON is invalid." >&2
           exit 1
         fi
       }

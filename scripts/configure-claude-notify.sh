@@ -6,6 +6,8 @@ REPO_ROOT="$(cd -- "$SCRIPT_DIR/.." >/dev/null 2>&1 && pwd)"
 
 CONFIG_FILE="${CLAUDE_SETTINGS_FILE:-$HOME/.claude/settings.json}"
 SOURCE_CONFIG_FILE="${SOURCE_CONFIG_FILE:-$REPO_ROOT/claude/settings.json}"
+SOURCE_KEYBINDINGS_FILE="${SOURCE_KEYBINDINGS_FILE:-$REPO_ROOT/claude/keybindings.json}"
+SOURCE_MCP_FILE="${SOURCE_MCP_FILE:-$REPO_ROOT/claude/mcp.json}"
 NOTIFY_ENV_FILE="${NOTIFY_ENV_FILE:-$REPO_ROOT/notify/env}"
 NOTIFY_BIN="${NOTIFY_BIN:-/usr/local/bin/carl-notify}"
 NOTIFY_ENABLED_DEFAULT=""
@@ -20,6 +22,8 @@ Usage:
 Options:
   --config <path>                    Claude settings JSON path (default: ~/.claude/settings.json)
   --source-config <path>             Canonical source settings to install before wiring hooks
+  --source-keybindings <path>        Canonical Claude keybindings JSON source
+  --source-mcp <path>                Canonical Claude MCP JSON source
   --notify-env <path>                Notify env file (default: ./notify/env)
   --notify-bin <path>                Notifier binary path (default: /usr/local/bin/carl-notify)
   --notify-enabled-default <0|1>     Default notify enabled value
@@ -84,6 +88,16 @@ while [[ $# -gt 0 ]]; do
       SOURCE_CONFIG_FILE="$2"
       shift 2
       ;;
+    --source-keybindings)
+      [[ $# -ge 2 ]] || { log "--source-keybindings requires a value"; exit 1; }
+      SOURCE_KEYBINDINGS_FILE="$2"
+      shift 2
+      ;;
+    --source-mcp)
+      [[ $# -ge 2 ]] || { log "--source-mcp requires a value"; exit 1; }
+      SOURCE_MCP_FILE="$2"
+      shift 2
+      ;;
     --notify-env)
       [[ $# -ge 2 ]] || { log "--notify-env requires a value"; exit 1; }
       NOTIFY_ENV_FILE="$2"
@@ -142,7 +156,29 @@ if ! jq -e . "$SOURCE_CONFIG_FILE" >/dev/null 2>&1; then
   exit 1
 fi
 
+if [[ ! -f "$SOURCE_KEYBINDINGS_FILE" ]]; then
+  log "Source keybindings file not found: ${SOURCE_KEYBINDINGS_FILE}"
+  exit 1
+fi
+
+if ! jq -e . "$SOURCE_KEYBINDINGS_FILE" >/dev/null 2>&1; then
+  log "Invalid JSON in source keybindings: ${SOURCE_KEYBINDINGS_FILE}"
+  exit 1
+fi
+
+if [[ ! -f "$SOURCE_MCP_FILE" ]]; then
+  log "Source MCP file not found: ${SOURCE_MCP_FILE}"
+  exit 1
+fi
+
+if ! jq -e . "$SOURCE_MCP_FILE" >/dev/null 2>&1; then
+  log "Invalid JSON in source MCP file: ${SOURCE_MCP_FILE}"
+  exit 1
+fi
+
 mkdir -p "$(dirname "$CONFIG_FILE")"
+install -m 0644 "$SOURCE_KEYBINDINGS_FILE" "$(dirname "$CONFIG_FILE")/keybindings.json"
+install -m 0644 "$SOURCE_MCP_FILE" "$(dirname "$CONFIG_FILE")/mcp.json"
 install -m 0644 "$SOURCE_CONFIG_FILE" "$CONFIG_FILE"
 
 if ! jq -e . "$CONFIG_FILE" >/dev/null 2>&1; then
