@@ -4,27 +4,14 @@ set -euo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 REPO_ROOT="$(cd -- "${SCRIPT_DIR}/.." >/dev/null 2>&1 && pwd)"
 
-to_repo_root_path() {
-  local path
-  path="$1"
-  if [[ "${path}" = /* ]]; then
-    printf '%s\n' "${path}"
-  else
-    printf '%s\n' "${REPO_ROOT}/${path}"
-  fi
-}
+# shellcheck source=../scripts/load-domain-env.sh
+source "${REPO_ROOT}/scripts/load-domain-env.sh"
 
-ENV_FILE="${ENV_FILE:-$REPO_ROOT/.env}"
-ENV_FILE="$(to_repo_root_path "${ENV_FILE}")"
-if [[ -f "${ENV_FILE}" ]]; then
-  set -a
-  # shellcheck disable=SC1090
-  source "${ENV_FILE}"
-  set +a
-fi
+RUNTIME_ENV_FILE="${RUNTIME_ENV_FILE:-$REPO_ROOT/runtime/env}"
+carl_load_env_file "${RUNTIME_ENV_FILE}"
+carl_require_env_keys STATE_FILE
 
-STATE_FILE="${STATE_FILE:-$REPO_ROOT/.do-droplet.json}"
-STATE_FILE="$(to_repo_root_path "${STATE_FILE}")"
+STATE_FILE="$(carl_to_repo_root_path "${STATE_FILE}")"
 PUSH_SCRIPT="${REPO_ROOT}/scripts/push-secrets.sh"
 
 if [[ ! -f "${PUSH_SCRIPT}" ]]; then

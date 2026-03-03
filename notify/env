@@ -1,0 +1,4 @@
+# Shared notifier defaults (non-secret)
+NOTIFY_ENABLED=1
+NOTIFY_MIN_INTERVAL_SEC=120
+NOTIFY_INCLUDE_SNIPPET=1

@@ -6,7 +6,7 @@ CARL keeps secret values out of git history while still letting this repository 
 
 - Store local secret values in this repo at `./.secrets/secrets.env`.
 - `./.secrets/` must stay untracked.
-- Never place secrets in `.env`, cloud-init templates, or committed scripts.
+- Never place secrets in domain `env` files, cloud-init templates, or committed scripts.
 - Destination path on all target machines is `~/.config/carl/secrets.env`.
 
 ## Local Source Setup
@@ -114,3 +114,8 @@ ifconfig | grep "inet " | grep -v 127.0.0.1
 - `Permission denied` over SSH/SCP: verify user, host, and key auth.
 - Keys missing with `--required-keys`: ensure dotenv entries exist and are non-empty.
 - `SLACK_WEBHOOK_URL is required`: add webhook URL to `./.secrets/secrets.env` and push again.
+
+## Related Docs
+
+- [docs/config-architecture.md](config-architecture.md)
+- [docs/adding-a-service.md](adding-a-service.md)

@@ -104,6 +104,10 @@ write_files:
       NOTIFY_ENABLED_DEFAULT="$(resolve_template_value "@NOTIFY_ENABLED@" "@NOTIFY_ENABLED@")"
       NOTIFY_MIN_INTERVAL_SEC_DEFAULT="$(resolve_template_value "@NOTIFY_MIN_INTERVAL_SEC@" "@NOTIFY_MIN_INTERVAL_SEC@")"
       NOTIFY_INCLUDE_SNIPPET_DEFAULT="$(resolve_template_value "@NOTIFY_INCLUDE_SNIPPET@" "@NOTIFY_INCLUDE_SNIPPET@")"
+      CODEX_CONFIG_TOML_B64="$(resolve_template_value "@CODEX_CONFIG_TOML_B64@" "@CODEX_CONFIG_TOML_B64@")"
+      CLAUDE_SETTINGS_JSON_B64="$(resolve_template_value "@CLAUDE_SETTINGS_JSON_B64@" "@CLAUDE_SETTINGS_JSON_B64@")"
+      NPMRC_B64="$(resolve_template_value "@NPMRC_B64@" "@NPMRC_B64@")"
+      NVMRC_B64="$(resolve_template_value "@NVMRC_B64@" "@NVMRC_B64@")"
       GIT_USER_NAME_B64="$(resolve_template_value "@GIT_USER_NAME_B64@" "")"
       GIT_USER_EMAIL_B64="$(resolve_template_value "@GIT_USER_EMAIL_B64@" "")"
 
@@ -116,6 +120,33 @@ write_files:
 
       GIT_USER_NAME="$(decode_b64 "$GIT_USER_NAME_B64")"
       GIT_USER_EMAIL="$(decode_b64 "$GIT_USER_EMAIL_B64")"
+
+      decode_b64_to_file() {
+        local b64_value dest_path mode
+        b64_value="$1"
+        dest_path="$2"
+        mode="$3"
+
+        mkdir -p "$(dirname "${dest_path}")"
+        if ! printf '%s' "${b64_value}" | base64 -d > "${dest_path}"; then
+          echo "Failed to decode embedded config for ${dest_path}" >&2
+          exit 1
+        fi
+        chmod "${mode}" "${dest_path}"
+      }
+
+      install_baseline_config_files() {
+        decode_b64_to_file "${NPMRC_B64}" "/root/.npmrc" 0644
+        decode_b64_to_file "${NVMRC_B64}" "/root/.nvmrc" 0644
+        decode_b64_to_file "${NVMRC_B64}" "/workspace/main/.nvmrc" 0644
+        decode_b64_to_file "${CODEX_CONFIG_TOML_B64}" "/root/.codex/config.toml" 0644
+        decode_b64_to_file "${CLAUDE_SETTINGS_JSON_B64}" "/root/.claude/settings.json" 0644
+
+        if ! jq -e . /root/.claude/settings.json >/dev/null 2>&1; then
+          echo "Embedded Claude settings JSON is invalid." >&2
+          exit 1
+        fi
+      }
 
       ensure_ssh_keypair() {
         local ssh_dir private_key public_key key_comment host_name
@@ -426,6 +457,7 @@ write_files:
       ensure_ssh_keypair
       validate_notify_defaults
       install_carl_notify_script
+      install_baseline_config_files
 
       log "Installing Node.js ${NODE_MAJOR}.x from NodeSource"
       mkdir -p /etc/apt/keyrings

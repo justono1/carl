@@ -1,0 +1,4 @@
+# CARL canonical Codex configuration.
+# Notification wiring is enforced by scripts/configure-codex-notify.sh.
+
+tui.notifications = true

@@ -1,0 +1,3 @@
+# Playwright tooling pinned versions
+PLAYWRIGHT_MCP_VERSION=0.0.68
+PLAYWRIGHT_VERSION=1.58.2

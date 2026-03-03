@@ -1,0 +1,2 @@
+# CARL shared runtime settings (non-secret)
+STATE_FILE=./.do-droplet.json

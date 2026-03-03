@@ -1,0 +1,2 @@
+# npm domain settings (currently file-driven)
+# Keep this file for future npm-specific non-secret env keys.

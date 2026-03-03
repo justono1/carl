@@ -21,6 +21,10 @@ NOTIFY_ENABLED_DEFAULT="1"
 NOTIFY_MIN_INTERVAL_SEC_DEFAULT="120"
 NOTIFY_INCLUDE_SNIPPET_DEFAULT="1"
 CARL_NOTIFY_BIN="/usr/local/bin/carl-notify"
+CODEX_CONFIG_TOML_B64="IyBDQVJMIGNhbm9uaWNhbCBDb2RleCBjb25maWd1cmF0aW9uLgojIE5vdGlmaWNhdGlvbiB3aXJpbmcgaXMgZW5mb3JjZWQgYnkgc2NyaXB0cy9jb25maWd1cmUtY29kZXgtbm90aWZ5LnNoLgoKdHVpLm5vdGlmaWNhdGlvbnMgPSB0cnVlCg=="
+CLAUDE_SETTINGS_JSON_B64="ewogICJob29rcyI6IHt9Cn0K"
+NPMRC_B64="IyBDQVJMIGNhbm9uaWNhbCBucG0gY29uZmlndXJhdGlvbgojIEFkZCBzaGFyZWQgbnBtIHNldHRpbmdzIGhlcmUgd2hlbiBuZWVkZWQuCg=="
+NVMRC_B64="MjQK"
 
 log() {
   printf '[mac-bootstrap] %s\n' "$*"
@@ -220,6 +224,30 @@ ensure_local_bin_path() {
       printf '%s\n' "${export_line}" > "${profile}"
     fi
   done
+}
+
+decode_b64_to_file() {
+  local b64_value dest_path mode
+  b64_value="$1"
+  dest_path="$2"
+  mode="$3"
+
+  mkdir -p "$(dirname "${dest_path}")"
+  if ! printf '%s' "${b64_value}" | base64 -d > "${dest_path}"; then
+    die "Failed to decode embedded config for ${dest_path}"
+  fi
+  chmod "${mode}" "${dest_path}"
+}
+
+install_baseline_config_files() {
+  decode_b64_to_file "${NPMRC_B64}" "${HOME}/.npmrc" 0644
+  decode_b64_to_file "${NVMRC_B64}" "${HOME}/.nvmrc" 0644
+  decode_b64_to_file "${CODEX_CONFIG_TOML_B64}" "${HOME}/.codex/config.toml" 0644
+  decode_b64_to_file "${CLAUDE_SETTINGS_JSON_B64}" "${HOME}/.claude/settings.json" 0644
+
+  if ! jq -e . "${HOME}/.claude/settings.json" >/dev/null 2>&1; then
+    die "Embedded Claude settings JSON is invalid."
+  fi
 }
 
 normalize_bool() {
@@ -797,6 +825,7 @@ main() {
   ensure_ssh_keypair
   write_embedded_brewfile
   brew_bundle_apply
+  install_baseline_config_files
   install_carl_notify_binary
   install_npm_globals
   install_claude_code

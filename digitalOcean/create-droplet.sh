@@ -4,33 +4,21 @@ set -euo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 REPO_ROOT="$(cd -- "$SCRIPT_DIR/.." >/dev/null 2>&1 && pwd)"
 
-to_repo_root_path() {
-  local path="$1"
-  if [[ "$path" = /* ]]; then
-    printf '%s\n' "$path"
-  else
-    printf '%s\n' "$REPO_ROOT/$path"
-  fi
-}
+# shellcheck source=../scripts/load-domain-env.sh
+source "$REPO_ROOT/scripts/load-domain-env.sh"
 
-# Load optional .env file for local machine/runtime settings.
-# If the file is missing, defaults below are used.
-ENV_FILE="${ENV_FILE:-$REPO_ROOT/.env}"
-ENV_FILE="$(to_repo_root_path "$ENV_FILE")"
-if [[ -f "$ENV_FILE" ]]; then
-  set -a
-  # shellcheck disable=SC1090
-  source "$ENV_FILE"
-  set +a
-fi
+RUNTIME_ENV_FILE="${RUNTIME_ENV_FILE:-$REPO_ROOT/runtime/env}"
+DIGITALOCEAN_ENV_FILE="${DIGITALOCEAN_ENV_FILE:-$REPO_ROOT/digitalOcean/env}"
+carl_load_env_file "$RUNTIME_ENV_FILE"
+carl_load_env_file "$DIGITALOCEAN_ENV_FILE"
+carl_require_env_keys DROPLET_NAME REGION IMAGE SIZE CLOUD_INIT_FILE STATE_FILE
 
 # ---- Config ----
-DROPLET_NAME="${DROPLET_NAME:-devbox-1}"
-REGION="${REGION:-nyc3}"
-IMAGE="${IMAGE:-ubuntu-24-04-x64}"
-SIZE="${SIZE:-s-1vcpu-2gb}"
-CLOUD_INIT_FILE="${CLOUD_INIT_FILE:-$REPO_ROOT/linux/cloud-init.yaml}"
-CLOUD_INIT_FILE="$(to_repo_root_path "$CLOUD_INIT_FILE")"
+DROPLET_NAME="${DROPLET_NAME}"
+REGION="${REGION}"
+IMAGE="${IMAGE}"
+SIZE="${SIZE}"
+CLOUD_INIT_FILE="$(carl_to_repo_root_path "$CLOUD_INIT_FILE")"
 GIT_USER_NAME=""
 GIT_USER_EMAIL=""
 WAIT_FOR_CLOUD_INIT="${WAIT_FOR_CLOUD_INIT:-1}"
@@ -38,8 +26,7 @@ CLOUD_INIT_WAIT_TIMEOUT_SECONDS="${CLOUD_INIT_WAIT_TIMEOUT_SECONDS:-1800}"
 CLOUD_INIT_POLL_INTERVAL_SECONDS="${CLOUD_INIT_POLL_INTERVAL_SECONDS:-10}"
 
 # State file written by this script (used by destroy script)
-STATE_FILE="${STATE_FILE:-$REPO_ROOT/.do-droplet.json}"
-STATE_FILE="$(to_repo_root_path "$STATE_FILE")"
+STATE_FILE="$(carl_to_repo_root_path "$STATE_FILE")"
 
 # SSH key selection:
 # - Prefer setting SSH_KEY_ID explicitly
