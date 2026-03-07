@@ -140,33 +140,42 @@ awk \
   -v notify_line="$NOTIFY_LINE" \
   -v tui_line="$TUI_LINE" \
   '
-    BEGIN {
-      notify_seen = 0
-      tui_seen = 0
-    }
-    /^[[:space:]]*notify[[:space:]]*=/ {
+    function emit_root_keys() {
       if (notify_seen == 0) {
         print notify_line
         notify_seen = 1
       }
-      next
-    }
-    /^[[:space:]]*tui\.notifications[[:space:]]*=/ {
       if (tui_seen == 0) {
         print tui_line
         tui_seen = 1
       }
+      root_emitted = 1
+    }
+    BEGIN {
+      notify_seen = 0
+      tui_seen = 0
+      root_emitted = 0
+    }
+    /^[[:space:]]*notify[[:space:]]*=/ {
+      next
+    }
+    /^[[:space:]]*tui\.notifications[[:space:]]*=/ {
+      next
+    }
+    /^[[:space:]]*\[[^]]+\][[:space:]]*$/ {
+      if (root_emitted == 0) {
+        emit_root_keys()
+        print ""
+      }
+      print
       next
     }
     {
       print
     }
     END {
-      if (notify_seen == 0) {
-        print notify_line
-      }
-      if (tui_seen == 0) {
-        print tui_line
+      if (root_emitted == 0) {
+        emit_root_keys()
       }
     }
   ' "$CONFIG_FILE" > "$tmp_file"

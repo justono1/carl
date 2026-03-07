@@ -10,6 +10,10 @@ model_reasoning_effort = "high"
 model_reasoning_summary = "detailed"
 preferred_auth_method = "chatgpt"
 
+# Notification wiring is managed by scripts/configure-codex-notify.sh.
+notify = []
+tui.notifications = true
+
 [mcp_servers.playwright]
 command = "npx"
 startup_timeout_sec = 60
@@ -24,9 +28,6 @@ hide_rate_limit_model_nudge = true
 [notice.model_migrations]
 "gpt-5.2" = "gpt-5.2-codex"
 
+# Skills are intentionally omitted for now in CARL.
 [features]
 multi_agent = false
-
-# Skills are intentionally omitted for now in CARL.
-# Notification wiring is managed by scripts/configure-codex-notify.sh.
-tui.notifications = true

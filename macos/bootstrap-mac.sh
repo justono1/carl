@@ -21,7 +21,7 @@ NOTIFY_ENABLED_DEFAULT="0"
 NOTIFY_MIN_INTERVAL_SEC_DEFAULT="120"
 NOTIFY_INCLUDE_SNIPPET_DEFAULT="1"
 CARL_NOTIFY_BIN="/usr/local/bin/carl-notify"
-CODEX_CONFIG_TOML_B64="bW9kZWwgPSAiZ3B0LTUuNCIKbW9kZWxfcHJvdmlkZXIgPSAib3BlbmFpIgoKIyBBbGxvdyBhdXRvbWF0aWMgd3JpdGVzL2NvbW1hbmRzIGluIHdvcmtzcGFjZS4KIyBQcm90ZWN0ZWQgYWN0aW9ucyByZW1haW4gZ292ZXJuZWQgYnkgdGhlIHJ1bnRpbWUgcG9saWN5IGluIHVzZS4KYXBwcm92YWxfcG9saWN5ID0gIm5ldmVyIgpzYW5kYm94X21vZGUgPSAiZGFuZ2VyLWZ1bGwtYWNjZXNzIgoKbW9kZWxfcmVhc29uaW5nX2VmZm9ydCA9ICJoaWdoIgptb2RlbF9yZWFzb25pbmdfc3VtbWFyeSA9ICJkZXRhaWxlZCIKcHJlZmVycmVkX2F1dGhfbWV0aG9kID0gImNoYXRncHQiCgpbbWNwX3NlcnZlcnMucGxheXdyaWdodF0KY29tbWFuZCA9ICJucHgiCnN0YXJ0dXBfdGltZW91dF9zZWMgPSA2MAphcmdzID0gWwogICJAcGxheXdyaWdodC9tY3BAMC4wLjY4IiwKICAiLS1pc29sYXRlZCIKXQoKW25vdGljZV0KaGlkZV9yYXRlX2xpbWl0X21vZGVsX251ZGdlID0gdHJ1ZQoKW25vdGljZS5tb2RlbF9taWdyYXRpb25zXQoiZ3B0LTUuMiIgPSAiZ3B0LTUuMi1jb2RleCIKCltmZWF0dXJlc10KbXVsdGlfYWdlbnQgPSBmYWxzZQoKIyBTa2lsbHMgYXJlIGludGVudGlvbmFsbHkgb21pdHRlZCBmb3Igbm93IGluIENBUkwuCiMgTm90aWZpY2F0aW9uIHdpcmluZyBpcyBtYW5hZ2VkIGJ5IHNjcmlwdHMvY29uZmlndXJlLWNvZGV4LW5vdGlmeS5zaC4KdHVpLm5vdGlmaWNhdGlvbnMgPSB0cnVlCg=="
+CODEX_CONFIG_TOML_B64="bW9kZWwgPSAiZ3B0LTUuNCIKbW9kZWxfcHJvdmlkZXIgPSAib3BlbmFpIgoKIyBBbGxvdyBhdXRvbWF0aWMgd3JpdGVzL2NvbW1hbmRzIGluIHdvcmtzcGFjZS4KIyBQcm90ZWN0ZWQgYWN0aW9ucyByZW1haW4gZ292ZXJuZWQgYnkgdGhlIHJ1bnRpbWUgcG9saWN5IGluIHVzZS4KYXBwcm92YWxfcG9saWN5ID0gIm5ldmVyIgpzYW5kYm94X21vZGUgPSAiZGFuZ2VyLWZ1bGwtYWNjZXNzIgoKbW9kZWxfcmVhc29uaW5nX2VmZm9ydCA9ICJoaWdoIgptb2RlbF9yZWFzb25pbmdfc3VtbWFyeSA9ICJkZXRhaWxlZCIKcHJlZmVycmVkX2F1dGhfbWV0aG9kID0gImNoYXRncHQiCgojIE5vdGlmaWNhdGlvbiB3aXJpbmcgaXMgbWFuYWdlZCBieSBzY3JpcHRzL2NvbmZpZ3VyZS1jb2RleC1ub3RpZnkuc2guCm5vdGlmeSA9IFtdCnR1aS5ub3RpZmljYXRpb25zID0gdHJ1ZQoKW21jcF9zZXJ2ZXJzLnBsYXl3cmlnaHRdCmNvbW1hbmQgPSAibnB4IgpzdGFydHVwX3RpbWVvdXRfc2VjID0gNjAKYXJncyA9IFsKICAiQHBsYXl3cmlnaHQvbWNwQDAuMC42OCIsCiAgIi0taXNvbGF0ZWQiCl0KCltub3RpY2VdCmhpZGVfcmF0ZV9saW1pdF9tb2RlbF9udWRnZSA9IHRydWUKCltub3RpY2UubW9kZWxfbWlncmF0aW9uc10KImdwdC01LjIiID0gImdwdC01LjItY29kZXgiCgojIFNraWxscyBhcmUgaW50ZW50aW9uYWxseSBvbWl0dGVkIGZvciBub3cgaW4gQ0FSTC4KW2ZlYXR1cmVzXQptdWx0aV9hZ2VudCA9IGZhbHNlCg=="
 CLAUDE_SETTINGS_JSON_B64="ewogICIkc2NoZW1hIjogImh0dHBzOi8vanNvbi5zY2hlbWFzdG9yZS5vcmcvY2xhdWRlLWNvZGUtc2V0dGluZ3MuanNvbiIsCiAgImRlZmF1bHRNb2RlIjogImJ5cGFzc1Blcm1pc3Npb25zIiwKICAic3Bpbm5lclZlcmJzIjogewogICAgIm1vZGUiOiAicmVwbGFjZSIsCiAgICAidmVyYnMiOiBbCiAgICAgICJUaGlua2luZyIKICAgIF0KICB9Cn0K"
 CLAUDE_KEYBINDINGS_JSON_B64="ewogICIkc2NoZW1hIjogImh0dHBzOi8vd3d3LnNjaGVtYXN0b3JlLm9yZy9jbGF1ZGUtY29kZS1rZXliaW5kaW5ncy5qc29uIiwKICAiJGRvY3MiOiAiaHR0cHM6Ly9jb2RlLmNsYXVkZS5jb20vZG9jcy9lbi9rZXliaW5kaW5ncyIsCiAgImJpbmRpbmdzIjogWwogICAgewogICAgICAiY29udGV4dCI6ICJDaGF0IiwKICAgICAgImJpbmRpbmdzIjogewogICAgICAgICJzaGlmdCtlbnRlciI6ICJjaGF0Om5ld2xpbmUiCiAgICAgIH0KICAgIH0KICBdCn0K"
 CLAUDE_MCP_JSON_B64="ewogICJtY3BTZXJ2ZXJzIjogewogICAgInBsYXl3cmlnaHQiOiB7CiAgICAgICJ0eXBlIjogInN0ZGlvIiwKICAgICAgImNvbW1hbmQiOiAibnB4IiwKICAgICAgImFyZ3MiOiBbCiAgICAgICAgIkBwbGF5d3JpZ2h0L21jcEAwLjAuNjgiLAogICAgICAgICItLWlzb2xhdGVkIiwKICAgICAgICAiLS1vdXRwdXQtZGlyIiwKICAgICAgICAiL3RtcC9wbGF5d3JpZ2h0LW1jcCIKICAgICAgXSwKICAgICAgImVudiI6IHt9CiAgICB9CiAgfQp9Cg=="
@@ -535,25 +535,35 @@ configure_codex_notify() {
     -v notify_line="${notify_line}" \
     -v tui_line="${tui_line}" \
     '
-      BEGIN { notify_seen = 0; tui_seen = 0 }
-      /^[[:space:]]*notify[[:space:]]*=/ {
+      function emit_root_keys() {
         if (notify_seen == 0) {
           print notify_line
           notify_seen = 1
         }
-        next
-      }
-      /^[[:space:]]*tui\.notifications[[:space:]]*=/ {
         if (tui_seen == 0) {
           print tui_line
           tui_seen = 1
         }
+        root_emitted = 1
+      }
+      BEGIN { notify_seen = 0; tui_seen = 0; root_emitted = 0 }
+      /^[[:space:]]*notify[[:space:]]*=/ {
+        next
+      }
+      /^[[:space:]]*tui\.notifications[[:space:]]*=/ {
+        next
+      }
+      /^[[:space:]]*\[[^]]+\][[:space:]]*$/ {
+        if (root_emitted == 0) {
+          emit_root_keys()
+          print ""
+        }
+        print
         next
       }
       { print }
       END {
-        if (notify_seen == 0) { print notify_line }
-        if (tui_seen == 0) { print tui_line }
+        if (root_emitted == 0) { emit_root_keys() }
       }
     ' "${config_file}" > "${tmp_file}"
   mv "${tmp_file}" "${config_file}"
