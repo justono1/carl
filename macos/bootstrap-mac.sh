@@ -27,6 +27,7 @@ CLAUDE_KEYBINDINGS_JSON_B64="ewogICIkc2NoZW1hIjogImh0dHBzOi8vd3d3LnNjaGVtYXN0b3J
 CLAUDE_MCP_JSON_B64="ewogICJtY3BTZXJ2ZXJzIjogewogICAgInBsYXl3cmlnaHQiOiB7CiAgICAgICJ0eXBlIjogInN0ZGlvIiwKICAgICAgImNvbW1hbmQiOiAibnB4IiwKICAgICAgImFyZ3MiOiBbCiAgICAgICAgIkBwbGF5d3JpZ2h0L21jcEAwLjAuNjgiLAogICAgICAgICItLWlzb2xhdGVkIiwKICAgICAgICAiLS1vdXRwdXQtZGlyIiwKICAgICAgICAiL3RtcC9wbGF5d3JpZ2h0LW1jcCIKICAgICAgXSwKICAgICAgImVudiI6IHt9CiAgICB9CiAgfQp9Cg=="
 NPMRC_B64="IyBDQVJMIGNhbm9uaWNhbCBucG0gY29uZmlndXJhdGlvbgojIEFkZCBzaGFyZWQgbnBtIHNldHRpbmdzIGhlcmUgd2hlbiBuZWVkZWQuCg=="
 NVMRC_B64="MjQK"
+SHELL_CORE_ZSH_B64="IyBDQVJMIHNoYXJlZCBac2ggY29yZS4KIyBUaGlzIGZpbGUgaXMgc291cmNlZCBmcm9tIH4vLnpzaHJjOyBrZWVwIHBlcnNvbmFsIG92ZXJyaWRlcyBpbiB+Ly56c2hyYyBhZnRlciB0aGUgQ0FSTCBibG9jay4KCmV4cG9ydCBQQVRIPSIkSE9NRS8ubG9jYWwvYmluOiRQQVRIIgoKYWxpYXMgLi49J2NkIC4uJwphbGlhcyAuLi49J2NkIC4uLy4uJwphbGlhcyAuLi4uPSdjZCAuLi8uLi8uLicKYWxpYXMgbD0nbHMgLUNGJwphbGlhcyBsYT0nbHMgLUEnCmFsaWFzIGxsPSdscyAtYWxGJwphbGlhcyBncz0nZ2l0IHN0YXR1cyAtc2InCmFsaWFzIGdhPSdnaXQgYWRkJwphbGlhcyBnYz0nZ2l0IGNvbW1pdCcKYWxpYXMgZ2NhPSdnaXQgY29tbWl0IC0tYW1lbmQnCmFsaWFzIGdjbz0nZ2l0IGNoZWNrb3V0JwphbGlhcyBnYj0nZ2l0IGJyYW5jaCcKYWxpYXMgZ2Q9J2dpdCBkaWZmJwphbGlhcyBnbD0nZ2l0IGxvZyAtLW9uZWxpbmUgLS1ncmFwaCAtLWRlY29yYXRlIC0yMCcKYWxpYXMgZ3A9J2dpdCBwdXNoJwphbGlhcyBmZj0ncmcgLS1maWxlcyB8IHJnJwphbGlhcyByZ2E9J3JnIC1uJwphbGlhcyByZ2k9J3JnIC1uIC1pJwoKIwojIEp1bXAgdG8gdGhlIGN1cnJlbnQgZ2l0IHJlcG9zaXRvcnkgcm9vdC4KY2RiKCkgewogIGxvY2FsIHJvb3QKICByb290PSIkKGdpdCByZXYtcGFyc2UgLS1zaG93LXRvcGxldmVsIDI+L2Rldi9udWxsKSIgfHwgewogICAgZWNobyAiTm90IGluIGEgZ2l0IHJlcG9zaXRvcnkiID4mMgogICAgcmV0dXJuIDEKICB9CiAgY2QgIiRyb290Igp9CgojCiMgSnVtcCB0byB0aGUgZGlyZWN0b3J5IG9mIHRoZSBmaXJzdCBmaWxlIHdob3NlIHBhdGggbWF0Y2hlcyBhIHBhdHRlcm4uCmNkZigpIHsKICBsb2NhbCBtYXRjaAogIGlmIFtbICQjIC1sdCAxIF1dOyB0aGVuCiAgICBlY2hvICJVc2FnZTogY2RmIDxwYXR0ZXJuPiIgPiYyCiAgICByZXR1cm4gMQogIGZpCgogIG1hdGNoPSIkKHJnIC0tZmlsZXMgfCByZyAtLSAiJDEiIHwgaGVhZCAtbjEpIgogIGlmIFtbIC16ICIkbWF0Y2giIF1dOyB0aGVuCiAgICBlY2hvICJObyBmaWxlIG1hdGNoZXM6ICQxIiA+JjIKICAgIHJldHVybiAxCiAgZmkKICBjZCAiJChkaXJuYW1lICIkbWF0Y2giKSIKfQoKIwojIFNlYXJjaCBzaGVsbCBoaXN0b3J5IHdpdGggcmlwZ3JlcC4KaGdyZXAoKSB7CiAgZmMgLWwgMSB8IHJnICIkQCIKfQoKIwojIERlbGV0ZSBsb2NhbCBicmFuY2hlcyBhbHJlYWR5IG1lcmdlZCBpbnRvIHRoZSBjdXJyZW50IGJyYW5jaCAoZXhjbHVkaW5nIHByb3RlY3RlZCBuYW1lcykuCmdjbGVhbigpIHsKICBsb2NhbCBjdXJyZW50IGJyYW5jaAogIGN1cnJlbnQ9IiQoZ2l0IHJldi1wYXJzZSAtLWFiYnJldi1yZWYgSEVBRCAyPi9kZXYvbnVsbCkiIHx8IHsKICAgIGVjaG8gIk5vdCBpbiBhIGdpdCByZXBvc2l0b3J5IiA+JjIKICAgIHJldHVybiAxCiAgfQoKICBnaXQgZm9yLWVhY2gtcmVmIC0tZm9ybWF0PSclKHJlZm5hbWU6c2hvcnQpJyByZWZzL2hlYWRzIHwgd2hpbGUgSUZTPSByZWFkIC1yIGJyYW5jaDsgZG8KICAgIGNhc2UgIiRicmFuY2giIGluCiAgICAgIG1haW58bWFzdGVyfGRldmVsb3B8ZGV2fCIkY3VycmVudCIpCiAgICAgICAgY29udGludWUKICAgICAgICA7OwogICAgZXNhYwoKICAgIGlmIGdpdCBtZXJnZS1iYXNlIC0taXMtYW5jZXN0b3IgIiRicmFuY2giICIkY3VycmVudCIgMj4vZGV2L251bGw7IHRoZW4KICAgICAgZ2l0IGJyYW5jaCAtZCAiJGJyYW5jaCIKICAgIGZpCiAgZG9uZQp9CgojCiMgUHJpbnQgbGlrZWx5IGxvY2FsIElQdjQgYWRkcmVzc2VzIG9uIExpbnV4L21hY09TLgpteWlwKCkgewogIGlmIGNvbW1hbmQgLXYgaXAgPi9kZXYvbnVsbCAyPiYxOyB0aGVuCiAgICBpcCAtbyAtNCBhZGRyIHNob3cgc2NvcGUgZ2xvYmFsIHwgYXdrICd7cHJpbnQgJDIgIjogIiAkNH0nIHwgY3V0IC1kLyAtZjEKICAgIHJldHVybiAwCiAgZmkKCiAgaWYgY29tbWFuZCAtdiBpZmNvbmZpZyA+L2Rldi9udWxsIDI+JjE7IHRoZW4KICAgIGlmY29uZmlnIHwgYXdrICcvaW5ldCAvICYmICQyICE9ICIxMjcuMC4wLjEiIHtwcmludCAkMn0nCiAgICByZXR1cm4gMAogIGZpCgogIGVjaG8gIk5vIHN1cHBvcnRlZCBuZXR3b3JrIHRvb2wgZm91bmQgKGlwL2lmY29uZmlnKS4iID4mMgogIHJldHVybiAxCn0KCiMKIyBTaG93IG1hY09TIGhhcmR3YXJlIHBvcnQgdG8gZGV2aWNlIG1hcHBpbmdzLgptYWNod3BvcnRzKCkgewogIGlmIFtbICIkKHVuYW1lIC1zKSIgIT0gIkRhcndpbiIgXV07IHRoZW4KICAgIGVjaG8gIm1hY2h3cG9ydHMgaXMgb25seSBhdmFpbGFibGUgb24gbWFjT1MuIiA+JjIKICAgIHJldHVybiAxCiAgZmkKCiAgbmV0d29ya3NldHVwIC1saXN0YWxsaGFyZHdhcmVwb3J0cwp9CgojCiMgUHJpbnQgcXVpY2sgbWFjT1MgTEFOIElQIGNhbmRpZGF0ZXMgYWNyb3NzIGtub3duIG5ldHdvcmsgaGFyZHdhcmUgcG9ydHMuCm1hY2lwKCkgewogIGlmIFtbICIkKHVuYW1lIC1zKSIgIT0gIkRhcndpbiIgXV07IHRoZW4KICAgIGVjaG8gIm1hY2lwIGlzIG9ubHkgYXZhaWxhYmxlIG9uIG1hY09TLiIgPiYyCiAgICByZXR1cm4gMQogIGZpCgogIGxvY2FsIGRldiBpcCBmb3VuZF9hbnkKICBmb3VuZF9hbnk9MAoKICB3aGlsZSBJRlM9IHJlYWQgLXIgZGV2OyBkbwogICAgW1sgLW4gIiRkZXYiIF1dIHx8IGNvbnRpbnVlCiAgICBpcD0iJChpcGNvbmZpZyBnZXRpZmFkZHIgIiRkZXYiIDI+L2Rldi9udWxsIHx8IHRydWUpIgogICAgaWYgW1sgLW4gIiRpcCIgXV07IHRoZW4KICAgICAgZWNobyAiJGRldjogJGlwIgogICAgICBmb3VuZF9hbnk9MQogICAgZmkKICBkb25lIDwgPChuZXR3b3Jrc2V0dXAgLWxpc3RhbGxoYXJkd2FyZXBvcnRzIDI+L2Rldi9udWxsIHwgYXdrIC1GJzogJyAnL15EZXZpY2U6IC97cHJpbnQgJDJ9JykKCiAgaWYgW1sgIiRmb3VuZF9hbnkiIC1lcSAwIF1dOyB0aGVuCiAgICBlY2hvICJObyBMQU4gSVAgZm91bmQgdmlhIG5ldHdvcmtzZXR1cCBoYXJkd2FyZSBwb3J0cy4iID4mMgogICAgZWNobyAiUnVuIG1hY2h3cG9ydHMgdG8gaW5zcGVjdCBhdmFpbGFibGUgaW50ZXJmYWNlcy4iID4mMgogICAgcmV0dXJuIDEKICBmaQp9CgojCiMgU2hvdyBtYWNPUyByZW1vdGUgYWNjZXNzIHN0YXR1cyAoU1NIICsgU2NyZWVuIFNoYXJpbmcpIGFuZCBMQU4gSVAgaGludHMuCm1hY3JlbW90ZSgpIHsKICBpZiBbWyAiJCh1bmFtZSAtcykiICE9ICJEYXJ3aW4iIF1dOyB0aGVuCiAgICBlY2hvICJtYWNyZW1vdGUgaXMgb25seSBhdmFpbGFibGUgb24gbWFjT1MuIiA+JjIKICAgIHJldHVybiAxCiAgZmkKCiAgZWNobyAiUmVtb3RlIExvZ2luIChTU0gpOiIKICBzeXN0ZW1zZXR1cCAtZ2V0cmVtb3RlbG9naW4gMj4vZGV2L251bGwgfHwgZWNobyAiICBVbmFibGUgdG8gcmVhZCBSZW1vdGUgTG9naW4gc3RhdHVzLiIKCiAgZWNobyAiIgogIGVjaG8gIlNjcmVlbiBTaGFyaW5nIChWTkMpIHBvcnQgY2hlY2sgb24gbG9jYWxob3N0OiIKICBpZiBuYyAteiBsb2NhbGhvc3QgNTkwMCA+L2Rldi9udWxsIDI+JjE7IHRoZW4KICAgIGVjaG8gIiAgUG9ydCA1OTAwIGlzIG9wZW4gKGxpa2VseSBlbmFibGVkKS4iCiAgZWxzZQogICAgZWNobyAiICBQb3J0IDU5MDAgaXMgY2xvc2VkIChsaWtlbHkgZGlzYWJsZWQpLiIKICBmaQoKICBlY2hvICIiCiAgZWNobyAiTEFOIElQIGNhbmRpZGF0ZXM6IgogIG1hY2lwIHx8IHRydWUKfQo="
 
 log() {
   printf '[mac-bootstrap] %s\n' "$*"
@@ -248,6 +249,7 @@ install_baseline_config_files() {
   decode_b64_to_file "${CLAUDE_SETTINGS_JSON_B64}" "${HOME}/.claude/settings.json" 0644
   decode_b64_to_file "${CLAUDE_KEYBINDINGS_JSON_B64}" "${HOME}/.claude/keybindings.json" 0644
   decode_b64_to_file "${CLAUDE_MCP_JSON_B64}" "${HOME}/.claude/mcp.json" 0644
+  decode_b64_to_file "${SHELL_CORE_ZSH_B64}" "${HOME}/.config/carl/zsh/core.zsh" 0644
 
   if ! jq -e . "${HOME}/.claude/settings.json" >/dev/null 2>&1; then
     die "Embedded Claude settings JSON is invalid."
@@ -259,6 +261,73 @@ install_baseline_config_files() {
 
   if ! jq -e . "${HOME}/.claude/mcp.json" >/dev/null 2>&1; then
     die "Embedded Claude MCP JSON is invalid."
+  fi
+}
+
+ensure_carl_zshrc_source_block() {
+  local zshrc source_line begin_marker end_marker tmp_file
+  zshrc="${HOME}/.zshrc"
+  source_line='[[ -f "$HOME/.config/carl/zsh/core.zsh" ]] && source "$HOME/.config/carl/zsh/core.zsh"'
+  begin_marker='# >>> CARL ZSH CORE >>>'
+  end_marker='# <<< CARL ZSH CORE <<<'
+
+  touch "${zshrc}"
+  tmp_file="$(mktemp)"
+
+  awk \
+    -v begin_marker="${begin_marker}" \
+    -v end_marker="${end_marker}" \
+    -v source_line="${source_line}" \
+    '
+      BEGIN { in_block = 0; block_written = 0 }
+      $0 == begin_marker {
+        if (block_written == 0) {
+          print begin_marker
+          print source_line
+          print end_marker
+          block_written = 1
+        }
+        in_block = 1
+        next
+      }
+      $0 == end_marker {
+        in_block = 0
+        next
+      }
+      {
+        if (!in_block) {
+          print
+        }
+      }
+      END {
+        if (block_written == 0) {
+          if (NR > 0) {
+            print ""
+          }
+          print begin_marker
+          print source_line
+          print end_marker
+        }
+      }
+    ' "${zshrc}" > "${tmp_file}"
+
+  mv "${tmp_file}" "${zshrc}"
+}
+
+ensure_zsh_as_default_shell() {
+  local zsh_bin current_shell
+  zsh_bin="$(command -v zsh || true)"
+  [[ -n "${zsh_bin}" ]] || die "zsh is required but was not found."
+
+  current_shell="$(dscl . -read "/Users/${USER}" UserShell 2>/dev/null | awk '{print $2}' || true)"
+  if [[ "${current_shell}" == "${zsh_bin}" ]]; then
+    return 0
+  fi
+
+  if chsh -s "${zsh_bin}" "${USER}" >/dev/null 2>&1; then
+    log "Set default shell to ${zsh_bin} for ${USER}."
+  else
+    log "Warning: failed to set default shell to ${zsh_bin} for ${USER}."
   fi
 }
 
@@ -841,6 +910,8 @@ main() {
   write_embedded_brewfile
   brew_bundle_apply
   install_baseline_config_files
+  ensure_carl_zshrc_source_block
+  ensure_zsh_as_default_shell
   install_carl_notify_binary
   install_npm_globals
   install_claude_code

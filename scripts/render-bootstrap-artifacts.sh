@@ -19,6 +19,7 @@ BR_ENV_FILE="${BR_ENV_FILE:-$REPO_ROOT/br/env}"
 PNPM_ENV_FILE="${PNPM_ENV_FILE:-$REPO_ROOT/pnpm/env}"
 PLAYWRIGHT_ENV_FILE="${PLAYWRIGHT_ENV_FILE:-$REPO_ROOT/playwright/env}"
 NOTIFY_ENV_FILE="${NOTIFY_ENV_FILE:-$REPO_ROOT/notify/env}"
+SHELL_ENV_FILE="${SHELL_ENV_FILE:-$REPO_ROOT/shell/env}"
 
 CODEX_CONFIG_SOURCE="${CODEX_CONFIG_SOURCE:-$REPO_ROOT/codex/config.toml}"
 CLAUDE_SETTINGS_SOURCE="${CLAUDE_SETTINGS_SOURCE:-$REPO_ROOT/claude/settings.json}"
@@ -26,6 +27,7 @@ CLAUDE_KEYBINDINGS_SOURCE="${CLAUDE_KEYBINDINGS_SOURCE:-$REPO_ROOT/claude/keybin
 CLAUDE_MCP_SOURCE="${CLAUDE_MCP_SOURCE:-$REPO_ROOT/claude/mcp.json}"
 NPMRC_SOURCE="${NPMRC_SOURCE:-$REPO_ROOT/npm/.npmrc}"
 NVMRC_SOURCE="${NVMRC_SOURCE:-$REPO_ROOT/node/.nvmrc}"
+SHELL_CORE_ZSH_SOURCE="${SHELL_CORE_ZSH_SOURCE:-$REPO_ROOT/shell/core.zsh}"
 
 need_cmd() {
   command -v "$1" >/dev/null 2>&1 || {
@@ -104,7 +106,8 @@ validate_source_files() {
     "$CLAUDE_KEYBINDINGS_SOURCE" \
     "$CLAUDE_MCP_SOURCE" \
     "$NPMRC_SOURCE" \
-    "$NVMRC_SOURCE"; do
+    "$NVMRC_SOURCE" \
+    "$SHELL_CORE_ZSH_SOURCE"; do
     if [[ ! -f "$source_file" ]]; then
       echo "Required source file not found: $source_file" >&2
       exit 1
@@ -135,6 +138,7 @@ render_versions() {
     -e "s/@CLAUDE_MCP_JSON_B64@/$(escape_sed_replacement "$CLAUDE_MCP_JSON_B64")/g" \
     -e "s/@NPMRC_B64@/$(escape_sed_replacement "$NPMRC_B64")/g" \
     -e "s/@NVMRC_B64@/$(escape_sed_replacement "$NVMRC_B64")/g" \
+    -e "s/@SHELL_CORE_ZSH_B64@/$(escape_sed_replacement "$SHELL_CORE_ZSH_B64")/g" \
     "$template_file" > "$output_file"
 }
 
@@ -177,6 +181,7 @@ carl_load_env_file "$BR_ENV_FILE"
 carl_load_env_file "$PNPM_ENV_FILE"
 carl_load_env_file "$PLAYWRIGHT_ENV_FILE"
 carl_load_env_file "$NOTIFY_ENV_FILE"
+carl_load_env_file "$SHELL_ENV_FILE"
 
 validate_versions
 validate_source_files
@@ -187,6 +192,7 @@ CLAUDE_KEYBINDINGS_JSON_B64="$(file_b64_no_newline "$CLAUDE_KEYBINDINGS_SOURCE")
 CLAUDE_MCP_JSON_B64="$(file_b64_no_newline "$CLAUDE_MCP_SOURCE")"
 NPMRC_B64="$(file_b64_no_newline "$NPMRC_SOURCE")"
 NVMRC_B64="$(file_b64_no_newline "$NVMRC_SOURCE")"
+SHELL_CORE_ZSH_B64="$(file_b64_no_newline "$SHELL_CORE_ZSH_SOURCE")"
 
 render_versions "$LINUX_TEMPLATE_FILE" "$LINUX_OUTPUT_FILE"
 render_versions "$MAC_TEMPLATE_FILE" "$MAC_OUTPUT_FILE"

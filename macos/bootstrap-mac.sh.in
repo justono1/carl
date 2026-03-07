@@ -27,6 +27,7 @@ CLAUDE_KEYBINDINGS_JSON_B64="@CLAUDE_KEYBINDINGS_JSON_B64@"
 CLAUDE_MCP_JSON_B64="@CLAUDE_MCP_JSON_B64@"
 NPMRC_B64="@NPMRC_B64@"
 NVMRC_B64="@NVMRC_B64@"
+SHELL_CORE_ZSH_B64="@SHELL_CORE_ZSH_B64@"
 
 log() {
   printf '[mac-bootstrap] %s\n' "$*"
@@ -248,6 +249,7 @@ install_baseline_config_files() {
   decode_b64_to_file "${CLAUDE_SETTINGS_JSON_B64}" "${HOME}/.claude/settings.json" 0644
   decode_b64_to_file "${CLAUDE_KEYBINDINGS_JSON_B64}" "${HOME}/.claude/keybindings.json" 0644
   decode_b64_to_file "${CLAUDE_MCP_JSON_B64}" "${HOME}/.claude/mcp.json" 0644
+  decode_b64_to_file "${SHELL_CORE_ZSH_B64}" "${HOME}/.config/carl/zsh/core.zsh" 0644
 
   if ! jq -e . "${HOME}/.claude/settings.json" >/dev/null 2>&1; then
     die "Embedded Claude settings JSON is invalid."
@@ -259,6 +261,73 @@ install_baseline_config_files() {
 
   if ! jq -e . "${HOME}/.claude/mcp.json" >/dev/null 2>&1; then
     die "Embedded Claude MCP JSON is invalid."
+  fi
+}
+
+ensure_carl_zshrc_source_block() {
+  local zshrc source_line begin_marker end_marker tmp_file
+  zshrc="${HOME}/.zshrc"
+  source_line='[[ -f "$HOME/.config/carl/zsh/core.zsh" ]] && source "$HOME/.config/carl/zsh/core.zsh"'
+  begin_marker='# >>> CARL ZSH CORE >>>'
+  end_marker='# <<< CARL ZSH CORE <<<'
+
+  touch "${zshrc}"
+  tmp_file="$(mktemp)"
+
+  awk \
+    -v begin_marker="${begin_marker}" \
+    -v end_marker="${end_marker}" \
+    -v source_line="${source_line}" \
+    '
+      BEGIN { in_block = 0; block_written = 0 }
+      $0 == begin_marker {
+        if (block_written == 0) {
+          print begin_marker
+          print source_line
+          print end_marker
+          block_written = 1
+        }
+        in_block = 1
+        next
+      }
+      $0 == end_marker {
+        in_block = 0
+        next
+      }
+      {
+        if (!in_block) {
+          print
+        }
+      }
+      END {
+        if (block_written == 0) {
+          if (NR > 0) {
+            print ""
+          }
+          print begin_marker
+          print source_line
+          print end_marker
+        }
+      }
+    ' "${zshrc}" > "${tmp_file}"
+
+  mv "${tmp_file}" "${zshrc}"
+}
+
+ensure_zsh_as_default_shell() {
+  local zsh_bin current_shell
+  zsh_bin="$(command -v zsh || true)"
+  [[ -n "${zsh_bin}" ]] || die "zsh is required but was not found."
+
+  current_shell="$(dscl . -read "/Users/${USER}" UserShell 2>/dev/null | awk '{print $2}' || true)"
+  if [[ "${current_shell}" == "${zsh_bin}" ]]; then
+    return 0
+  fi
+
+  if chsh -s "${zsh_bin}" "${USER}" >/dev/null 2>&1; then
+    log "Set default shell to ${zsh_bin} for ${USER}."
+  else
+    log "Warning: failed to set default shell to ${zsh_bin} for ${USER}."
   fi
 }
 
@@ -841,6 +910,8 @@ main() {
   write_embedded_brewfile
   brew_bundle_apply
   install_baseline_config_files
+  ensure_carl_zshrc_source_block
+  ensure_zsh_as_default_shell
   install_carl_notify_binary
   install_npm_globals
   install_claude_code

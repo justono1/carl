@@ -14,6 +14,7 @@ packages:
   - less
   - vim
   - bash
+  - zsh
   - git
   - jq
   - openssh-client
@@ -110,6 +111,7 @@ write_files:
       CLAUDE_MCP_JSON_B64="$(resolve_template_value "@CLAUDE_MCP_JSON_B64@" "@CLAUDE_MCP_JSON_B64@")"
       NPMRC_B64="$(resolve_template_value "@NPMRC_B64@" "@NPMRC_B64@")"
       NVMRC_B64="$(resolve_template_value "@NVMRC_B64@" "@NVMRC_B64@")"
+      SHELL_CORE_ZSH_B64="$(resolve_template_value "@SHELL_CORE_ZSH_B64@" "@SHELL_CORE_ZSH_B64@")"
       GIT_USER_NAME_B64="$(resolve_template_value "@GIT_USER_NAME_B64@" "")"
       GIT_USER_EMAIL_B64="$(resolve_template_value "@GIT_USER_EMAIL_B64@" "")"
 
@@ -145,6 +147,7 @@ write_files:
         decode_b64_to_file "${CLAUDE_SETTINGS_JSON_B64}" "/root/.claude/settings.json" 0644
         decode_b64_to_file "${CLAUDE_KEYBINDINGS_JSON_B64}" "/root/.claude/keybindings.json" 0644
         decode_b64_to_file "${CLAUDE_MCP_JSON_B64}" "/root/.claude/mcp.json" 0644
+        decode_b64_to_file "${SHELL_CORE_ZSH_B64}" "/root/.config/carl/zsh/core.zsh" 0644
 
         if ! jq -e . /root/.claude/settings.json >/dev/null 2>&1; then
           echo "Embedded Claude settings JSON is invalid." >&2
@@ -159,6 +162,79 @@ write_files:
         if ! jq -e . /root/.claude/mcp.json >/dev/null 2>&1; then
           echo "Embedded Claude MCP JSON is invalid." >&2
           exit 1
+        fi
+      }
+
+      ensure_carl_zshrc_source_block() {
+        local zshrc source_line begin_marker end_marker tmp_file
+        zshrc="/root/.zshrc"
+        source_line='[[ -f "$HOME/.config/carl/zsh/core.zsh" ]] && source "$HOME/.config/carl/zsh/core.zsh"'
+        begin_marker='# >>> CARL ZSH CORE >>>'
+        end_marker='# <<< CARL ZSH CORE <<<'
+
+        touch "${zshrc}"
+        tmp_file="$(mktemp)"
+
+        awk \
+          -v begin_marker="${begin_marker}" \
+          -v end_marker="${end_marker}" \
+          -v source_line="${source_line}" \
+          '
+            BEGIN { in_block = 0; block_written = 0 }
+            $0 == begin_marker {
+              if (block_written == 0) {
+                print begin_marker
+                print source_line
+                print end_marker
+                block_written = 1
+              }
+              in_block = 1
+              next
+            }
+            $0 == end_marker {
+              in_block = 0
+              next
+            }
+            {
+              if (!in_block) {
+                print
+              }
+            }
+            END {
+              if (block_written == 0) {
+                if (NR > 0) {
+                  print ""
+                }
+                print begin_marker
+                print source_line
+                print end_marker
+              }
+            }
+          ' "${zshrc}" > "${tmp_file}"
+
+        mv "${tmp_file}" "${zshrc}"
+      }
+
+      ensure_zsh_as_default_shell() {
+        local zsh_bin current_shell
+        zsh_bin="$(command -v zsh || true)"
+        if [[ -z "${zsh_bin}" ]]; then
+          echo "zsh is required but was not found." >&2
+          return 1
+        fi
+
+        current_shell="$(getent passwd root 2>/dev/null | cut -d: -f7 || true)"
+        if [[ -z "${current_shell}" ]]; then
+          current_shell="$(awk -F: '$1=="root"{print $7}' /etc/passwd)"
+        fi
+        if [[ "${current_shell}" == "${zsh_bin}" ]]; then
+          return 0
+        fi
+
+        if chsh -s "${zsh_bin}" root >/dev/null 2>&1; then
+          log "Set default shell to ${zsh_bin} for root."
+        else
+          log "Warning: failed to set default shell to ${zsh_bin} for root."
         fi
       }
 
@@ -472,6 +548,8 @@ write_files:
       validate_notify_defaults
       install_carl_notify_script
       install_baseline_config_files
+      ensure_carl_zshrc_source_block
+      ensure_zsh_as_default_shell
 
       log "Installing Node.js ${NODE_MAJOR}.x from NodeSource"
       mkdir -p /etc/apt/keyrings

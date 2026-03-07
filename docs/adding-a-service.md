@@ -20,7 +20,7 @@ Naming rules:
 Add whichever of these apply:
 
 - `<service>/env` for CARL-managed non-secret variables
-- canonical tool config file(s) using real names (examples: `config.toml`, `settings.json`, `.npmrc`, `.toolrc`)
+- canonical tool config file(s) using real names (examples: `config.toml`, `settings.json`, `.npmrc`, `.toolrc`, `core.zsh`)
 
 If no env variables are needed yet, still add `<service>/env` with a comment placeholder so ownership is explicit.
 
@@ -57,6 +57,7 @@ Ensure reruns are safe:
 - copy/install operations overwrite deterministically
 - config wiring does not duplicate entries
 - validation fails with actionable errors
+- user shell/profile source blocks (if used) are marker-based and idempotent
 
 ## 6. Documentation Updates (Required)
 

@@ -61,6 +61,7 @@ See [docs/config-architecture.md](docs/config-architecture.md) for load model an
 - `codex/env`, `codex/config.toml`: Codex CLI version + canonical config
 - `claude/env`, `claude/settings.json`, `claude/keybindings.json`, `claude/mcp.json`: Claude installer target + canonical settings/keybindings/mcp config
 - `notify/env`: non-secret notifier defaults
+- `shell/env`, `shell/core.zsh`: shared shell defaults and canonical Zsh core helpers
 
 ### Documentation and CI
 
@@ -97,6 +98,7 @@ ${EDITOR:-vi} pnpm/env
 ${EDITOR:-vi} playwright/env
 ${EDITOR:-vi} br/env
 ${EDITOR:-vi} notify/env
+${EDITOR:-vi} shell/env
 ```
 
 2. Render bootstrap artifacts:
@@ -206,6 +208,8 @@ NOTIFY_INCLUDE_SNIPPET=1
 ```
 
 ## macOS Bootstrap (arm64)
+
+CARL standardizes interactive shell UX on Zsh for the bootstrap user while keeping automation scripts on Bash. Shared aliases/functions are installed to `~/.config/carl/zsh/core.zsh` and sourced from `~/.zshrc`.
 
 ### Option A: Run from local checkout
 

@@ -17,12 +17,13 @@ Examples:
 - `claude/env`, `claude/settings.json`, `claude/keybindings.json`, and `claude/mcp.json`
 - `node/env` and `node/.nvmrc`
 - `npm/env` and `npm/.npmrc`
+- `shell/env` and `shell/core.zsh`
 
 ## Ownership Boundaries
 
 - `runtime/`: CARL runtime paths and shared script state.
 - `digitalOcean/`: cloud provisioning defaults.
-- `node`, `npm`, `pnpm`, `playwright`, `br`: tool/runtime versions and canonical files.
+- `node`, `npm`, `pnpm`, `playwright`, `br`, `shell`: tool/runtime versions and canonical files.
 - `codex`, `claude`: agent install versions and canonical configs.
 - `notify`: non-secret notification defaults.
 - `.secrets/`: local-only secret values (untracked), pushed separately.
@@ -54,7 +55,7 @@ Render inputs:
 
 - domain `env` values (versions/defaults)
 - canonical config files (`codex/config.toml`, `claude/settings.json`, `npm/.npmrc`, `node/.nvmrc`)
-  plus `claude/keybindings.json` and `claude/mcp.json`
+  plus `claude/keybindings.json`, `claude/mcp.json`, and `shell/core.zsh`
 
 The canonical config files are embedded into rendered artifacts (base64) and installed on target machines during bootstrap.
 
@@ -70,8 +71,10 @@ The canonical config files are embedded into rendered artifacts (base64) and ins
   - `/root/.claude/mcp.json`
   - `/root/.npmrc`
   - `/root/.nvmrc`
+  - `/root/.config/carl/zsh/core.zsh`
   - `/workspace/main/.nvmrc`
 - Applies notifier wiring for Codex/Claude after baseline files are installed.
+- Ensures `/root/.zshrc` sources CARL shell core and attempts to set root default shell to `zsh`.
 
 ### macOS bootstrap
 
@@ -83,7 +86,9 @@ The canonical config files are embedded into rendered artifacts (base64) and ins
   - `~/.claude/mcp.json`
   - `~/.npmrc`
   - `~/.nvmrc`
+  - `~/.config/carl/zsh/core.zsh`
 - Applies notifier wiring for Codex/Claude after baseline files are installed.
+- Ensures `~/.zshrc` sources CARL shell core and attempts to set bootstrap user default shell to `zsh`.
 
 ## Policy
 
