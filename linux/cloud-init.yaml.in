@@ -483,6 +483,26 @@ write_files:
       apt-get update
       apt-get install -y --no-install-recommends nodejs
 
+      log "Installing Visual Studio Code (stable)"
+      if command -v debconf-set-selections >/dev/null 2>&1; then
+        echo "code code/add-microsoft-repo boolean true" | debconf-set-selections
+      fi
+      tmp_vscode_key="$(mktemp)"
+      curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > "${tmp_vscode_key}"
+      install -D -o root -g root -m 0644 "${tmp_vscode_key}" /usr/share/keyrings/microsoft.gpg
+      rm -f "${tmp_vscode_key}"
+      cat > /etc/apt/sources.list.d/vscode.sources <<'EOF_VSCODE_REPO'
+Types: deb
+URIs: https://packages.microsoft.com/repos/code
+Suites: stable
+Components: main
+Architectures: amd64,arm64,armhf
+Signed-By: /usr/share/keyrings/microsoft.gpg
+EOF_VSCODE_REPO
+      apt-get update
+      apt-get install -y --no-install-recommends code
+      code --version
+
       log "Installing codex CLI (${CODEX_VERSION})"
       npm install -g "@openai/codex@${CODEX_VERSION}"
       codex --version

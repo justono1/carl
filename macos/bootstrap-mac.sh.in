@@ -553,6 +553,7 @@ brew "ninja"
 brew "pkg-config"
 brew "bash"
 brew "gnu-sed"
+cask "visual-studio-code"
 BREWFILE
 }
 
@@ -744,6 +745,7 @@ verify_versions() {
   command -v tmux >/dev/null 2>&1 || die "tmux not found on PATH."
   command -v codex >/dev/null 2>&1 || die "codex not found on PATH."
   command -v claude >/dev/null 2>&1 || die "claude not found on PATH."
+  command -v code >/dev/null 2>&1 || die "code not found on PATH."
   command -v playwright >/dev/null 2>&1 || die "playwright not found on PATH."
   command -v br >/dev/null 2>&1 || die "br not found on PATH."
   command -v carl-notify >/dev/null 2>&1 || die "carl-notify not found on PATH."
@@ -763,6 +765,7 @@ verify_versions() {
 
   codex --version
   claude --version
+  code --version
   playwright --version
   br --version
 }
