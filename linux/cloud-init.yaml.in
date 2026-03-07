@@ -99,6 +99,7 @@ write_files:
       CODEX_VERSION="$(resolve_template_value "@CODEX_VERSION@" "@CODEX_VERSION@")"
       CLAUDE_CODE_VERSION="$(resolve_template_value "@CLAUDE_CODE_VERSION@" "@CLAUDE_CODE_VERSION@")"
       BR_VERSION="$(resolve_template_value "@BR_VERSION@" "@BR_VERSION@")"
+      BV_VERSION="$(resolve_template_value "@BV_VERSION@" "@BV_VERSION@")"
       PNPM_VERSION="$(resolve_template_value "@PNPM_VERSION@" "@PNPM_VERSION@")"
       PLAYWRIGHT_MCP_VERSION="$(resolve_template_value "@PLAYWRIGHT_MCP_VERSION@" "@PLAYWRIGHT_MCP_VERSION@")"
       PLAYWRIGHT_VERSION="$(resolve_template_value "@PLAYWRIGHT_VERSION@" "@PLAYWRIGHT_VERSION@")"
@@ -643,6 +644,40 @@ EOF_VSCODE_REPO
       install -m 0755 "${br_bin}" /usr/local/bin/br
       rm -rf "${tmp_dir}"
       br --version
+
+      log "Installing bv (${BV_VERSION})"
+      arch="$(dpkg --print-architecture)"
+      case "${arch}" in
+        arm64) bv_arch="arm64" ;;
+        amd64) bv_arch="amd64" ;;
+        *)
+          echo "Unsupported architecture for bv: ${arch}" >&2
+          exit 1
+          ;;
+      esac
+
+      bv_tag="v${BV_VERSION}"
+      bv_release_api="https://api.github.com/repos/Dicklesworthstone/beads_viewer/releases/tags/${bv_tag}"
+      bv_asset_url="$(curl -fsSL "${bv_release_api}" \
+        | jq -r --arg arch "${bv_arch}" '.assets[]?.browser_download_url | select(test("bv"; "i") and test("linux"; "i") and test($arch; "i") and test("\\.(tar\\.gz|tgz)$"; "i"))' \
+        | head -n1 || true)"
+
+      if [[ -z "${bv_asset_url}" ]]; then
+        echo "Could not find a Linux ${bv_arch} release asset for bv ${bv_tag}" >&2
+        exit 1
+      fi
+
+      tmp_dir="$(mktemp -d)"
+      curl -fsSL "${bv_asset_url}" -o "${tmp_dir}/bv.tar.gz"
+      tar -xzf "${tmp_dir}/bv.tar.gz" -C "${tmp_dir}"
+      bv_bin="$(find "${tmp_dir}" -type f -name bv | head -n1 || true)"
+      if [[ -z "${bv_bin}" ]]; then
+        echo "Downloaded bv archive did not contain a bv binary." >&2
+        exit 1
+      fi
+      install -m 0755 "${bv_bin}" /usr/local/bin/bv
+      rm -rf "${tmp_dir}"
+      bv --version
 
       tmux -V
       command -v carl-notify >/dev/null

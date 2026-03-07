@@ -16,6 +16,7 @@ NODE_ENV_FILE="${NODE_ENV_FILE:-$REPO_ROOT/node/env}"
 CODEX_ENV_FILE="${CODEX_ENV_FILE:-$REPO_ROOT/codex/env}"
 CLAUDE_ENV_FILE="${CLAUDE_ENV_FILE:-$REPO_ROOT/claude/env}"
 BR_ENV_FILE="${BR_ENV_FILE:-$REPO_ROOT/br/env}"
+BV_ENV_FILE="${BV_ENV_FILE:-$REPO_ROOT/bv/env}"
 PNPM_ENV_FILE="${PNPM_ENV_FILE:-$REPO_ROOT/pnpm/env}"
 PLAYWRIGHT_ENV_FILE="${PLAYWRIGHT_ENV_FILE:-$REPO_ROOT/playwright/env}"
 NOTIFY_ENV_FILE="${NOTIFY_ENV_FILE:-$REPO_ROOT/notify/env}"
@@ -53,6 +54,7 @@ validate_versions() {
     CODEX_VERSION
     CLAUDE_CODE_VERSION
     BR_VERSION
+    BV_VERSION
     PNPM_VERSION
     PLAYWRIGHT_MCP_VERSION
     PLAYWRIGHT_VERSION
@@ -69,7 +71,7 @@ validate_versions() {
     fi
 
     case "${name}" in
-      NODE_MAJOR|CODEX_VERSION|CLAUDE_CODE_VERSION|BR_VERSION|PNPM_VERSION|PLAYWRIGHT_MCP_VERSION|PLAYWRIGHT_VERSION)
+      NODE_MAJOR|CODEX_VERSION|CLAUDE_CODE_VERSION|BR_VERSION|BV_VERSION|PNPM_VERSION|PLAYWRIGHT_MCP_VERSION|PLAYWRIGHT_VERSION)
         lower="$(printf '%s' "${value}" | tr '[:upper:]' '[:lower:]')"
         if [[ "${lower}" == "latest" ]]; then
           echo "Domain config: ${name} must be pinned and cannot be 'latest'" >&2
@@ -126,6 +128,7 @@ render_versions() {
     -e "s/@CODEX_VERSION@/$(escape_sed_replacement "$CODEX_VERSION")/g" \
     -e "s/@CLAUDE_CODE_VERSION@/$(escape_sed_replacement "$CLAUDE_CODE_VERSION")/g" \
     -e "s/@BR_VERSION@/$(escape_sed_replacement "$BR_VERSION")/g" \
+    -e "s/@BV_VERSION@/$(escape_sed_replacement "$BV_VERSION")/g" \
     -e "s/@PNPM_VERSION@/$(escape_sed_replacement "$PNPM_VERSION")/g" \
     -e "s/@PLAYWRIGHT_MCP_VERSION@/$(escape_sed_replacement "$PLAYWRIGHT_MCP_VERSION")/g" \
     -e "s/@PLAYWRIGHT_VERSION@/$(escape_sed_replacement "$PLAYWRIGHT_VERSION")/g" \
@@ -178,6 +181,7 @@ carl_load_env_file "$NODE_ENV_FILE"
 carl_load_env_file "$CODEX_ENV_FILE"
 carl_load_env_file "$CLAUDE_ENV_FILE"
 carl_load_env_file "$BR_ENV_FILE"
+carl_load_env_file "$BV_ENV_FILE"
 carl_load_env_file "$PNPM_ENV_FILE"
 carl_load_env_file "$PLAYWRIGHT_ENV_FILE"
 carl_load_env_file "$NOTIFY_ENV_FILE"

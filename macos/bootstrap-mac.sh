@@ -14,6 +14,7 @@ GIT_USER_EMAIL=""
 CODEX_VERSION="0.110.0"
 CLAUDE_CODE_VERSION="stable"
 BR_VERSION="0.1.7"
+BV_VERSION="0.14.4"
 PNPM_VERSION="10.30.1"
 PLAYWRIGHT_MCP_VERSION="0.0.68"
 PLAYWRIGHT_VERSION="1.58.2"
@@ -811,6 +812,45 @@ install_br() {
   br --version
 }
 
+install_bv() {
+  local existing_version bv_tag release_api asset_url tmp_dir bv_bin brew_prefix install_dir
+
+  if ! command -v jq >/dev/null 2>&1; then
+    die "jq is required to resolve beads viewer release assets."
+  fi
+
+  if command -v bv >/dev/null 2>&1; then
+    existing_version="$(bv --version 2>/dev/null | grep -Eo '[0-9]+(\.[0-9]+){2}' | head -n1 || true)"
+    if [[ "${existing_version}" == "${BV_VERSION}" ]]; then
+      log "bv ${BV_VERSION} already available; skipping install."
+      return
+    fi
+    log "bv version mismatch (found: ${existing_version:-unknown}, target: ${BV_VERSION}); reinstalling."
+  fi
+
+  log "Installing bv (${BV_VERSION})"
+  bv_tag="v${BV_VERSION}"
+  release_api="https://api.github.com/repos/Dicklesworthstone/beads_viewer/releases/tags/${bv_tag}"
+  asset_url="$(curl -fsSL "${release_api}" \
+    | jq -r '.assets[]?.browser_download_url | select(test("bv"; "i") and test("(darwin|macos)"; "i") and test("(arm64|aarch64)"; "i") and test("\\.(tar\\.gz|tgz)$"; "i"))' \
+    | head -n1 || true)"
+
+  [[ -n "${asset_url}" ]] || die "No macOS arm64 release tarball found for ${bv_tag}."
+
+  brew_prefix="$(brew --prefix)"
+  install_dir="${brew_prefix}/bin"
+
+  tmp_dir="$(mktemp -d)"
+  curl -fsSL "${asset_url}" -o "${tmp_dir}/bv.tar.gz"
+  tar -xzf "${tmp_dir}/bv.tar.gz" -C "${tmp_dir}"
+  bv_bin="$(find "${tmp_dir}" -type f -name bv | head -n1 || true)"
+  [[ -n "${bv_bin}" ]] || die "Downloaded bv archive did not contain a bv binary."
+  install -m 0755 "${bv_bin}" "${install_dir}/bv"
+  rm -rf "${tmp_dir}"
+
+  bv --version
+}
+
 install_playwright_browsers() {
   log "Installing Playwright browser binaries: ${PLAYWRIGHT_BROWSERS}"
   # shellcheck disable=SC2086
@@ -829,6 +869,7 @@ verify_versions() {
   command -v code >/dev/null 2>&1 || die "code not found on PATH."
   command -v playwright >/dev/null 2>&1 || die "playwright not found on PATH."
   command -v br >/dev/null 2>&1 || die "br not found on PATH."
+  command -v bv >/dev/null 2>&1 || die "bv not found on PATH."
   command -v carl-notify >/dev/null 2>&1 || die "carl-notify not found on PATH."
 
   if [[ "${INSTALL_PNPM}" == "1" ]]; then
@@ -849,6 +890,7 @@ verify_versions() {
   code --version
   playwright --version
   br --version
+  bv --version
 }
 
 verify_playwright_browser_cache() {
@@ -901,6 +943,7 @@ brew_profile_sha256=${package_set_sha}
 codex_version=${CODEX_VERSION}
 claude_code_target=${CLAUDE_CODE_VERSION}
 br_version=${BR_VERSION}
+bv_version=${BV_VERSION}
 pnpm_version=${pnpm_marker}
 playwright_mcp_version=${playwright_mcp_marker}
 playwright_version=${PLAYWRIGHT_VERSION}
@@ -930,6 +973,7 @@ main() {
   configure_codex_notify
   configure_claude_notify
   install_br
+  install_bv
   install_playwright_browsers
   verify_versions
   verify_playwright_browser_cache

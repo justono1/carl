@@ -23,7 +23,7 @@ Examples:
 
 - `runtime/`: CARL runtime paths and shared script state.
 - `digitalOcean/`: cloud provisioning defaults.
-- `node`, `npm`, `pnpm`, `playwright`, `br`, `shell`: tool/runtime versions and canonical files.
+- `node`, `npm`, `pnpm`, `playwright`, `br`, `bv`, `shell`: tool/runtime versions and canonical files.
 - `codex`, `claude`: agent install versions and canonical configs.
 - `notify`: non-secret notification defaults.
 - `.secrets/`: local-only secret values (untracked), pushed separately.
