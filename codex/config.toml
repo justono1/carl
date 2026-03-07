@@ -1,4 +1,4 @@
-model = "gpt-5.3-codex"
+model = "gpt-5.4"
 model_provider = "openai"
 
 # Allow automatic writes/commands in workspace.
@@ -6,7 +6,7 @@ model_provider = "openai"
 approval_policy = "never"
 sandbox_mode = "danger-full-access"
 
-model_reasoning_effort = "xhigh"
+model_reasoning_effort = "high"
 model_reasoning_summary = "detailed"
 preferred_auth_method = "chatgpt"
 
