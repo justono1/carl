@@ -645,6 +645,14 @@ EOF_VSCODE_REPO
       rm -rf "${tmp_dir}"
       br --version
 
+      if command -v bd >/dev/null 2>&1; then
+        log "bd already exists at $(command -v bd); preserving existing command."
+      else
+        ln -sfn /usr/local/bin/br /usr/local/bin/bd
+        log "Created bd compatibility shim at /usr/local/bin/bd -> /usr/local/bin/br"
+        bd --version
+      fi
+
       log "Installing bv (${BV_VERSION})"
       arch="$(dpkg --print-architecture)"
       case "${arch}" in

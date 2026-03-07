@@ -767,6 +767,24 @@ install_claude_code() {
   ensure_claude_on_path || die "claude not found on PATH after install."
 }
 
+ensure_bd_shim() {
+  local br_path bd_path br_dir
+
+  br_path="$(command -v br || true)"
+  [[ -n "${br_path}" ]] || die "br not found on PATH; cannot create bd compatibility shim."
+
+  bd_path="$(command -v bd || true)"
+  if [[ -n "${bd_path}" ]]; then
+    log "bd already exists at ${bd_path}; preserving existing command."
+    return
+  fi
+
+  br_dir="$(dirname "${br_path}")"
+  ln -sfn "${br_path}" "${br_dir}/bd"
+  log "Created bd compatibility shim at ${br_dir}/bd -> ${br_path}"
+  bd --version
+}
+
 install_br() {
   local existing_version br_tag release_api asset_url tmp_dir br_bin brew_prefix install_dir
 
@@ -778,6 +796,7 @@ install_br() {
     existing_version="$(br --version 2>/dev/null | grep -Eo '[0-9]+(\.[0-9]+){2}' | head -n1 || true)"
     if [[ "${existing_version}" == "${BR_VERSION}" ]]; then
       log "br ${BR_VERSION} already available; skipping install."
+      ensure_bd_shim
       return
     fi
     log "br version mismatch (found: ${existing_version:-unknown}, target: ${BR_VERSION}); reinstalling."
@@ -810,6 +829,7 @@ install_br() {
   fi
 
   br --version
+  ensure_bd_shim
 }
 
 install_bv() {
