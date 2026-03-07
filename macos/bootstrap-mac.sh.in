@@ -511,7 +511,9 @@ CARL_NOTIFY
     return
   fi
 
+  log "Could not install carl-notify to ${CARL_NOTIFY_BIN}; using user-local fallback."
   CARL_NOTIFY_BIN="${HOME}/.local/bin/carl-notify"
+  mkdir -p "$(dirname "${CARL_NOTIFY_BIN}")"
   install -m 0755 "${tmp_script}" "${CARL_NOTIFY_BIN}"
   rm -f "${tmp_script}"
   log "Installed carl-notify to ${CARL_NOTIFY_BIN} (fallback path)"
