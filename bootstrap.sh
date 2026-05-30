@@ -90,12 +90,8 @@ load_domain_env() {
     val="${!var:-}"
     [[ -n "${val}" ]] || die "Missing required version pin: ${var}"
     lower="$(printf '%s' "${val}" | tr '[:upper:]' '[:lower:]')"
-    # CLAUDE_CODE_VERSION accepts 'stable' (installer keyword), all others must be exact pins.
-    if [[ "${lower}" == "latest" ]]; then
-      die "${var} must be pinned, not 'latest'."
-    fi
-    if [[ "${var}" != "CLAUDE_CODE_VERSION" && "${lower}" == "stable" ]]; then
-      die "${var} must be pinned, not 'stable'."
+    if [[ "${lower}" == "latest" || "${lower}" == "stable" ]]; then
+      die "${var} must be an exact version pin, not '${val}'."
     fi
   done
 }
@@ -246,6 +242,26 @@ install_baseline_config_files() {
   jq -e . "${HOME}/.claude/settings.json"    >/dev/null || die "Claude settings.json is not valid JSON."
   jq -e . "${HOME}/.claude/keybindings.json" >/dev/null || die "Claude keybindings.json is not valid JSON."
   jq -e . "${HOME}/.claude/mcp.json"         >/dev/null || die "Claude mcp.json is not valid JSON."
+
+  pin_playwright_mcp_in_installed_configs
+}
+
+# Make playwright/env's PLAYWRIGHT_MCP_VERSION the single source of truth.
+# Both ~/.codex/config.toml and ~/.claude/mcp.json reference @playwright/mcp@<v>
+# as an npx argument; rewrite that suffix to match the env pin every run.
+pin_playwright_mcp_in_installed_configs() {
+  local codex_cfg claude_mcp pinned
+  codex_cfg="${HOME}/.codex/config.toml"
+  claude_mcp="${HOME}/.claude/mcp.json"
+  pinned="@playwright/mcp@${PLAYWRIGHT_MCP_VERSION}"
+
+  if [[ -f "${codex_cfg}" ]]; then
+    /usr/bin/sed -i '' -E "s|@playwright/mcp@[0-9A-Za-z.+-]+|${pinned}|g" "${codex_cfg}"
+  fi
+  if [[ -f "${claude_mcp}" ]]; then
+    /usr/bin/sed -i '' -E "s|@playwright/mcp@[0-9A-Za-z.+-]+|${pinned}|g" "${claude_mcp}"
+    jq -e . "${claude_mcp}" >/dev/null || die "Claude mcp.json became invalid after pinning."
+  fi
 }
 
 ensure_carl_zshrc_source_block() {
@@ -428,9 +444,6 @@ claude_native_satisfied() {
   ensure_standard_cli_symlinks
   if ! ensure_claude_on_path; then
     return 1
-  fi
-  if [[ "${CLAUDE_CODE_VERSION}" == "stable" || "${CLAUDE_CODE_VERSION}" == "latest" ]]; then
-    return 0
   fi
   installed="$(claude --version 2>/dev/null || true)"
   [[ "${installed}" == *"${CLAUDE_CODE_VERSION}"* ]]

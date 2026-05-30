@@ -1,2 +1,3 @@
-# Claude Code installer target
-CLAUDE_CODE_VERSION=stable
+# Claude Code installer target. Must be an exact semver pin (X.Y.Z).
+# The installer also accepts 'stable'/'latest' but CARL refuses them so this stays reproducible.
+CLAUDE_CODE_VERSION=2.1.157

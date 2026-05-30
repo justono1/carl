@@ -14,7 +14,7 @@ preferred_auth_method = "chatgpt"
 command = "npx"
 startup_timeout_sec = 60
 args = [
-  "@playwright/mcp@0.0.68",
+  "@playwright/mcp@0.0.75",
   "--isolated"
 ]
 

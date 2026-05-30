@@ -4,7 +4,7 @@
       "type": "stdio",
       "command": "npx",
       "args": [
-        "@playwright/mcp@0.0.68",
+        "@playwright/mcp@0.0.75",
         "--isolated",
         "--output-dir",
         "/tmp/playwright-mcp"

@@ -79,7 +79,9 @@ See [docs/adding-a-service.md](docs/adding-a-service.md).
 
 ## Version pinning
 
-Every version in a domain `env` file must be an exact pin. The script rejects `latest` and (for everything except `CLAUDE_CODE_VERSION`) `stable`. `CLAUDE_CODE_VERSION=stable` is allowed because that's the keyword the Claude Code installer itself accepts.
+Every version in a domain `env` file must be an exact pin. The script rejects both `latest` and `stable` for every version variable. The Claude Code installer itself accepts `stable`/`latest`, but CARL forbids them so the machine is always reproducible from the repo.
+
+The `@playwright/mcp` version is single-sourced from `playwright/env`. At install time, `bootstrap.sh` rewrites the `@playwright/mcp@<v>` suffix inside the installed `~/.codex/config.toml` and `~/.claude/mcp.json` to match `PLAYWRIGHT_MCP_VERSION`. The committed copies of those files are kept in sync as a convenience, but the env file is authoritative.
 
 ## Marker file
 

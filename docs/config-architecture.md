@@ -24,7 +24,7 @@ Current domains:
 
 ## Loading and validation
 
-`bootstrap.sh` sources every domain `env` file at startup with `set -a; source <file>; set +a`, then validates required version pins. A pin set to `latest` is rejected outright; `stable` is rejected for everything except `CLAUDE_CODE_VERSION` (where it's the installer's own keyword for the latest signed release).
+`bootstrap.sh` sources every domain `env` file at startup with `set -a; source <file>; set +a`, then validates required version pins. Both `latest` and `stable` are rejected for every version variable, so the bootstrap output is always reproducible from the repo state.
 
 ## Install model
 
@@ -41,6 +41,8 @@ Canonical config files are installed directly from the checkout into their targe
 | `shell/core.zsh`               | `~/.config/carl/zsh/core.zsh`                |
 
 `~/.zshrc` is patched with a marker-bounded block (`# >>> CARL ZSH CORE >>>` ... `# <<< CARL ZSH CORE <<<`) that sources `core.zsh`. Personal overrides go after the block.
+
+After install, `bootstrap.sh` rewrites the `@playwright/mcp@<version>` suffix inside `~/.codex/config.toml` and `~/.claude/mcp.json` to match `PLAYWRIGHT_MCP_VERSION`. This makes `playwright/env` the single source of truth for the MCP version even though the same string appears inside the canonical configs.
 
 ## Idempotency
 
