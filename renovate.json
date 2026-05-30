@@ -60,6 +60,15 @@
     },
     {
       "customType": "regex",
+      "description": "nvm/env: NVM_VERSION -> github-releases nvm-sh/nvm (strip leading v)",
+      "fileMatch": ["^nvm/env$"],
+      "matchStrings": ["(?m)^NVM_VERSION=(?<currentValue>\\S+)\\s*$"],
+      "datasourceTemplate": "github-releases",
+      "depNameTemplate": "nvm-sh/nvm",
+      "extractVersionTemplate": "^v?(?<version>.+)$"
+    },
+    {
+      "customType": "regex",
       "description": "br/env: BR_VERSION -> github-releases Dicklesworthstone/beads_rust (strip leading v)",
       "fileMatch": ["^br/env$"],
       "matchStrings": ["(?m)^BR_VERSION=(?<currentValue>\\S+)\\s*$"],

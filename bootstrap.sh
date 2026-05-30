@@ -65,6 +65,7 @@ ensure_macos_arm64() {
 load_domain_env() {
   local domain_envs=(
     node/env
+    nvm/env
     npm/env
     playwright/env
     codex/env
@@ -84,6 +85,7 @@ load_domain_env() {
 
   local pinned=(
     NODE_MAJOR
+    NVM_VERSION
     CODEX_VERSION
     CLAUDE_CODE_VERSION
     BR_VERSION
@@ -332,7 +334,7 @@ write_embedded_brewfile() {
   TMP_BREWFILE="$(mktemp "/tmp/carl.Brewfile.XXXXXX")"
   cat > "${TMP_BREWFILE}" <<BREWFILE
 # Runtime/toolchain foundation
-brew "node@${NODE_MAJOR}"
+# Node is installed via nvm, not Homebrew, to support .nvmrc-based switching.
 brew "python"
 
 # Dev tooling and shell utilities
@@ -360,11 +362,48 @@ brew_bundle_apply() {
   fi
 }
 
-link_pinned_node() {
-  # node@MAJOR is keg-only; ensure it's on PATH via brew link.
-  if brew list --versions "node@${NODE_MAJOR}" >/dev/null 2>&1; then
-    brew link --overwrite --force "node@${NODE_MAJOR}" >/dev/null 2>&1 || true
+install_nvm() {
+  local nvm_dir="${HOME}/.nvm"
+  local nvm_tag="v${NVM_VERSION}"
+  local current_tag
+
+  command -v git >/dev/null 2>&1 || die "git is required to install nvm."
+
+  if [[ -d "${nvm_dir}/.git" ]]; then
+    current_tag="$(git -C "${nvm_dir}" describe --tags --exact-match 2>/dev/null || true)"
+    if [[ "${current_tag}" == "${nvm_tag}" ]]; then
+      log "nvm ${NVM_VERSION} already installed at ${nvm_dir}; skipping."
+      return
+    fi
+    log "nvm at ${nvm_dir} is on ${current_tag:-unknown tag}; switching to ${nvm_tag}."
+    git -C "${nvm_dir}" fetch --tags --quiet
+    git -C "${nvm_dir}" checkout --quiet "${nvm_tag}"
+    return
   fi
+
+  log "Cloning nvm ${nvm_tag} into ${nvm_dir}."
+  git clone --quiet --branch "${nvm_tag}" --depth 1 \
+    https://github.com/nvm-sh/nvm.git "${nvm_dir}"
+}
+
+install_node_via_nvm() {
+  local nvm_dir="${HOME}/.nvm"
+  [[ -s "${nvm_dir}/nvm.sh" ]] || die "nvm.sh not found at ${nvm_dir}; install_nvm must run first."
+
+  # nvm.sh references some unset vars; temporarily relax strict mode.
+  set +u
+  # shellcheck disable=SC1091
+  . "${nvm_dir}/nvm.sh"
+  set -u
+
+  log "Installing Node ${NODE_MAJOR} (latest in major) via nvm."
+  set +u
+  nvm install "${NODE_MAJOR}"
+  nvm alias default "${NODE_MAJOR}" >/dev/null
+  nvm use default >/dev/null
+  set -u
+
+  log "Node $(node --version) is active and set as nvm default."
 }
 
 npm_global_satisfied() {
@@ -573,7 +612,8 @@ install_playwright_browsers() {
 verify_versions() {
   log "Verifying toolchain availability."
   command -v brew       >/dev/null 2>&1 || die "brew not found on PATH."
-  command -v node       >/dev/null 2>&1 || die "node not found on PATH."
+  [[ -s "${HOME}/.nvm/nvm.sh" ]]         || die "nvm not found at ~/.nvm/nvm.sh."
+  command -v node       >/dev/null 2>&1 || die "node not found on PATH (nvm default not active?)."
   command -v npm        >/dev/null 2>&1 || die "npm not found on PATH."
   command -v tmux       >/dev/null 2>&1 || die "tmux not found on PATH."
   command -v codex      >/dev/null 2>&1 || die "codex not found on PATH."
@@ -630,6 +670,8 @@ completed_at=${completed_at}
 source_ref=${source_ref}
 brew_profile_sha256=${package_set_sha}
 node_major=${NODE_MAJOR}
+node_installed=$(node --version 2>/dev/null || echo unknown)
+nvm_version=${NVM_VERSION}
 codex_version=${CODEX_VERSION}
 claude_code_target=${CLAUDE_CODE_VERSION}
 br_version=${BR_VERSION}
@@ -667,7 +709,8 @@ main() {
   ensure_ssh_keypair
   write_embedded_brewfile
   brew_bundle_apply
-  link_pinned_node
+  install_nvm
+  install_node_via_nvm
   install_baseline_config_files
   ensure_carl_zshrc_source_block
   ensure_zsh_as_default_shell

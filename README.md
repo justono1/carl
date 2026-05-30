@@ -12,16 +12,17 @@ Running `./bootstrap.sh` from a checkout of this repo will, idempotently:
 2. Load and validate version pins from `<domain>/env` files (no `latest` allowed).
 3. Prompt for Git identity (skipped on re-runs if already configured).
 4. Install Xcode Command Line Tools, Homebrew, and the embedded Brewfile.
-5. Install canonical configs into `~/.codex`, `~/.claude`, `~/.npmrc`, `~/.nvmrc`, and `~/.config/carl/zsh/core.zsh`.
-6. Wire `~/.zshrc` to source `core.zsh` (idempotent, marker-bounded).
-7. Set `zsh` as the default shell.
-8. Install pinned npm globals: Codex CLI, Playwright, `@playwright/mcp`.
-9. Install Claude Code via the native installer and link it onto PATH.
-10. Install `br` and `bv` (beads) from GitHub releases, with a `bd → br` shim.
-11. Install OrbStack (Docker-compatible container/VM runtime, native on Apple Silicon).
-12. Install GitHub Desktop (MIT-licensed Git GUI).
-13. Install Playwright browsers (default: Chromium).
-14. Verify everything is on PATH and write `~/.bootstrap_done` with a versions snapshot.
+5. Install nvm (pinned to `NVM_VERSION`), then `nvm install ${NODE_MAJOR}` and set it as the default. `.nvmrc` auto-switch is wired into zsh.
+6. Install canonical configs into `~/.codex`, `~/.claude`, `~/.npmrc`, `~/.nvmrc`, and `~/.config/carl/zsh/core.zsh`.
+7. Wire `~/.zshrc` to source `core.zsh` (idempotent, marker-bounded).
+8. Set `zsh` as the default shell.
+9. Install pinned npm globals: Codex CLI, Playwright, `@playwright/mcp`.
+10. Install Claude Code via the native installer and link it onto PATH.
+11. Install `br` and `bv` (beads) from GitHub releases, with a `bd → br` shim.
+12. Install OrbStack (Docker-compatible container/VM runtime, native on Apple Silicon).
+13. Install GitHub Desktop (MIT-licensed Git GUI).
+14. Install Playwright browsers (default: Chromium).
+15. Verify everything is on PATH and write `~/.bootstrap_done` with a versions snapshot.
 
 ## Quick start
 
@@ -60,7 +61,8 @@ The script detects already-satisfied installs and only does the work needed for 
 │   └── config.toml        canonical Codex CLI config
 ├── node/
 │   ├── env                NODE_MAJOR
-│   └── .nvmrc             canonical project default
+│   └── .nvmrc             canonical home/.nvmrc default (matches NODE_MAJOR)
+├── nvm/env                NVM_VERSION
 ├── npm/
 │   ├── env                (placeholder)
 │   └── .npmrc             canonical npm settings
