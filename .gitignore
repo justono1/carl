@@ -1,7 +1,1 @@
 .DS_Store
-.do-droplet.json
-.secrets/
-.env.local
-.env.secrets
-*.secrets.env
-secrets.env

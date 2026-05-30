@@ -1,97 +1,79 @@
-# Adding a Service Domain
+# Adding or Updating a Tool
 
-Use this guide when introducing a new tool/service to CARL.
+Use this guide when adding a new tool/service to CARL, or when changing the pinned version of an existing one.
 
-## 1. Create Domain Directory
+## Updating a pinned version
 
-Create a top-level directory named for the service:
+1. Open the relevant `<domain>/env` file (e.g., `codex/env`, `br/env`).
+2. Change the version value to the new pin (no `latest`, no `stable` except for `CLAUDE_CODE_VERSION`).
+3. Commit.
+4. On the target Mac: `git pull && ./bootstrap.sh`.
+
+The script will detect the version mismatch and install the new version. No other changes needed.
+
+## Adding a brand-new tool
+
+### 1. Create the domain directory
 
 ```bash
 mkdir -p <service>
 ```
 
-Naming rules:
+Naming rules: lowercase, short, tool-aligned (`node`, `pnpm`, `playwright`, `codex`).
 
-- lowercase letters and digits only when possible
-- keep names short and tool-aligned (`node`, `pnpm`, `playwright`, `codex`)
+### 2. Add domain files
 
-## 2. Add Domain Files
+Whichever apply:
 
-Add whichever of these apply:
+- `<service>/env` for CARL-managed non-secret variables (e.g., `<SERVICE>_VERSION=1.2.3`).
+- Canonical tool config files using their real names (`config.toml`, `settings.json`, `.somerc`, `core.zsh`).
 
-- `<service>/env` for CARL-managed non-secret variables
-- canonical tool config file(s) using real names (examples: `config.toml`, `settings.json`, `.npmrc`, `.toolrc`, `core.zsh`)
+If no env variables apply yet, still add `<service>/env` with a comment placeholder so ownership is explicit.
 
-If no env variables are needed yet, still add `<service>/env` with a comment placeholder so ownership is explicit.
+### 3. Wire it into `bootstrap.sh`
 
-## 3. Wire Script Consumption
+1. Add `<service>/env` to the `domain_envs` array inside `load_domain_env`.
+2. Add any new required version variable to the `pinned` array in `load_domain_env`.
+3. Add the install step (a new function) and call it from `main`. Place it after `install_baseline_config_files` if it needs canonical config copied first, or wherever ordering demands.
+4. Add a `command -v <tool>` check to `verify_versions`.
+5. If the tool needs a canonical config file installed, add an `install -m 0644 …` line to `install_baseline_config_files` and (if it's JSON) a `jq -e` validation.
 
-Update scripts that should consume the new domain:
+### 4. Idempotency expectations
 
-1. Source `scripts/load-domain-env.sh` if not already sourced.
-2. Load file with `carl_load_env_file`.
-3. Validate required keys with `carl_require_env_keys`.
-4. Replace hardcoded/default values with loaded keys.
+The install step must be safe to re-run:
 
-## 4. Wire Render Consumption (if bootstrap-relevant)
+- Check whether the right version is already installed before doing anything (e.g., parse `--version` and compare).
+- Overwrite config files unconditionally (they're authoritative).
+- Don't duplicate lines in shell rc files — use marker-bounded blocks (see `ensure_carl_zshrc_source_block`).
+- Fail loudly with `die` on validation errors, never silently.
 
-If the service affects Linux/macOS bootstrap artifacts:
+### 5. Brewfile changes (if needed)
 
-1. Update `scripts/render-bootstrap-artifacts.sh`:
-   - load `<service>/env`
-   - validate required keys
-   - add template substitutions
-2. Update `linux/cloud-init.yaml.in` and/or `macos/bootstrap-mac.sh.in`:
-   - add placeholders/variables
-   - install canonical files during bootstrap if needed
-3. Re-render artifacts:
+If the tool is available via Homebrew, add it to the embedded Brewfile inside `write_embedded_brewfile`. The Brewfile is the simplest path; only use a custom installer (npm global, GitHub release, `curl | bash`) when brew doesn't ship the tool or doesn't pin the version you need.
 
-```bash
-./scripts/render-bootstrap-artifacts.sh
-```
-
-## 5. Idempotency Expectations
-
-Ensure reruns are safe:
-
-- copy/install operations overwrite deterministically
-- config wiring does not duplicate entries
-- validation fails with actionable errors
-- user shell/profile source blocks (if used) are marker-based and idempotent
-
-## 6. Documentation Updates (Required)
+### 6. Documentation
 
 Update at minimum:
 
-- `README.md`: add domain to layout/config map
-- `docs/config-architecture.md`: add ownership + load path
-- this file if the pattern evolves
+- `README.md` — add the new domain to the repository layout.
+- `docs/config-architecture.md` — add the new domain to the list and the install table.
 
-If secrets handling changes, also update `docs/secrets.md`.
-
-## 7. Validation Checklist
-
-Run before opening a PR:
+### 7. Validate
 
 ```bash
-./scripts/render-bootstrap-artifacts.sh
-./macos/update-checksums.sh --check
-bash -n digitalOcean/*.sh scripts/*.sh macos/*.sh
+bash -n bootstrap.sh
+./bootstrap.sh
 ```
 
-And confirm:
+Confirm:
 
-- new domain files are committed
-- rendered artifacts updated
-- checksum file updated
-- no root `.env` dependency introduced
+- `verify_versions` passes.
+- The new tool runs from a fresh shell.
+- A second `./bootstrap.sh` run is fast (everything reports "already satisfied").
 
-## PR Checklist Snippet
+## PR/commit checklist
 
-```md
-- [ ] Added `<service>/env` and canonical config files (if needed)
-- [ ] Wired service into scripts via `load-domain-env.sh`
-- [ ] Updated render/template wiring (if bootstrap-affecting)
-- [ ] Re-rendered artifacts and validated checksums
-- [ ] Updated README + docs/config-architecture.md
-```
+- [ ] Added `<service>/env` and any canonical config files
+- [ ] Wired the install + verification into `bootstrap.sh`
+- [ ] Updated `README.md` and `docs/config-architecture.md`
+- [ ] Confirmed `./bootstrap.sh` is idempotent (second run does no work)

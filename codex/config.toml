@@ -10,10 +10,6 @@ model_reasoning_effort = "high"
 model_reasoning_summary = "detailed"
 preferred_auth_method = "chatgpt"
 
-# Notification wiring is managed by scripts/configure-codex-notify.sh.
-notify = []
-tui.notifications = true
-
 [mcp_servers.playwright]
 command = "npx"
 startup_timeout_sec = 60

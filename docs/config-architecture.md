@@ -1,97 +1,60 @@
 # CARL Config Architecture
 
-## Purpose
+## Premise
 
-CARL uses a domain-driven configuration model so each tool/service owns its configuration surface in a predictable location.
+CARL targets a single use case: bootstrapping and updating one Apple Silicon Mac so it runs AI coding agents and a normal developer toolchain identically each time. Configuration is domain-driven — every tool gets its own directory — and `bootstrap.sh` reads those directories directly. There is no template language, no render step, and no remote state.
 
-## Two Config Types
+## Domain directories
 
-Each domain can contain:
+Each tool/service in CARL has a top-level directory containing one or both of:
 
-1. `env` (CARL-owned, non-secret key/value config)
-2. Canonical tool config files (real file names copied to target machines)
+1. An `env` file with CARL-managed non-secret key/value pairs (version pins, flags).
+2. Canonical tool config files using their real names (`config.toml`, `settings.json`, `.npmrc`, `.nvmrc`, `core.zsh`).
 
-Examples:
+Current domains:
 
-- `codex/env` and `codex/config.toml`
-- `claude/env`, `claude/settings.json`, `claude/keybindings.json`, and `claude/mcp.json`
-- `node/env` and `node/.nvmrc`
-- `npm/env` and `npm/.npmrc`
-- `shell/env` and `shell/core.zsh`
+- `node/` — `NODE_MAJOR` + `.nvmrc`
+- `npm/` — `.npmrc`
+- `playwright/` — `PLAYWRIGHT_VERSION`, `PLAYWRIGHT_MCP_VERSION`
+- `codex/` — `CODEX_VERSION` + `config.toml`
+- `claude/` — `CLAUDE_CODE_VERSION` + `settings.json` + `keybindings.json` + `mcp.json`
+- `br/` — `BR_VERSION`
+- `bv/` — `BV_VERSION`
+- `shell/` — `core.zsh` (zsh aliases/functions sourced from `~/.zshrc`)
 
-## Ownership Boundaries
+## Loading and validation
 
-- `runtime/`: CARL runtime paths and shared script state.
-- `digitalOcean/`: cloud provisioning defaults.
-- `node`, `npm`, `pnpm`, `playwright`, `br`, `bv`, `shell`: tool/runtime versions and canonical files.
-- `codex`, `claude`: agent install versions and canonical configs.
-- `notify`: non-secret notification defaults.
-- `.secrets/`: local-only secret values (untracked), pushed separately.
+`bootstrap.sh` sources every domain `env` file at startup with `set -a; source <file>; set +a`, then validates required version pins. A pin set to `latest` is rejected outright; `stable` is rejected for everything except `CLAUDE_CODE_VERSION` (where it's the installer's own keyword for the latest signed release).
 
-## Loading and Precedence
+## Install model
 
-### Shared loader
+Canonical config files are installed directly from the checkout into their target locations using `install -m 0644`. JSON files are validated with `jq -e` after install.
 
-`scripts/load-domain-env.sh` exposes:
+| Source                         | Destination                                  |
+| ------------------------------ | -------------------------------------------- |
+| `codex/config.toml`            | `~/.codex/config.toml`                       |
+| `claude/settings.json`         | `~/.claude/settings.json`                    |
+| `claude/keybindings.json`      | `~/.claude/keybindings.json`                 |
+| `claude/mcp.json`              | `~/.claude/mcp.json`                         |
+| `npm/.npmrc`                   | `~/.npmrc`                                   |
+| `node/.nvmrc`                  | `~/.nvmrc`                                   |
+| `shell/core.zsh`               | `~/.config/carl/zsh/core.zsh`                |
 
-- `carl_load_env_file <path> [required=1]`
-- `carl_require_env_keys <KEY ...>`
-- `carl_to_repo_root_path <path>`
+`~/.zshrc` is patched with a marker-bounded block (`# >>> CARL ZSH CORE >>>` ... `# <<< CARL ZSH CORE <<<`) that sources `core.zsh`. Personal overrides go after the block.
 
-### Effective behavior
+## Idempotency
 
-- Scripts source only required domain `env` files.
-- Missing required files/keys fail fast.
-- Root `.env` is not part of the model.
+Every step in `bootstrap.sh` is safe to re-run:
 
-## Render Pipeline
-
-`./scripts/render-bootstrap-artifacts.sh` is the only renderer for:
-
-- `linux/cloud-init.yaml`
-- `macos/bootstrap-mac.sh`
-
-Render inputs:
-
-- domain `env` values (versions/defaults)
-- canonical config files (`codex/config.toml`, `claude/settings.json`, `npm/.npmrc`, `node/.nvmrc`)
-  plus `claude/keybindings.json`, `claude/mcp.json`, and `shell/core.zsh`
-
-The canonical config files are embedded into rendered artifacts (base64) and installed on target machines during bootstrap.
-
-## Bootstrap Behavior
-
-### Linux cloud-init
-
-- Installs toolchain versions from domain `env` values.
-- Writes canonical configs to:
-  - `/root/.codex/config.toml`
-  - `/root/.claude/settings.json`
-  - `/root/.claude/keybindings.json`
-  - `/root/.claude/mcp.json`
-  - `/root/.npmrc`
-  - `/root/.nvmrc`
-  - `/root/.config/carl/zsh/core.zsh`
-  - `/workspace/main/.nvmrc`
-- Applies notifier wiring for Codex/Claude after baseline files are installed.
-- Ensures `/root/.zshrc` sources CARL shell core and attempts to set root default shell to `zsh`.
-
-### macOS bootstrap
-
-- Installs toolchain versions from rendered values.
-- Writes canonical configs to:
-  - `~/.codex/config.toml`
-  - `~/.claude/settings.json`
-  - `~/.claude/keybindings.json`
-  - `~/.claude/mcp.json`
-  - `~/.npmrc`
-  - `~/.nvmrc`
-  - `~/.config/carl/zsh/core.zsh`
-- Applies notifier wiring for Codex/Claude after baseline files are installed.
-- Ensures `~/.zshrc` sources CARL shell core and attempts to set bootstrap user default shell to `zsh`.
+- Homebrew uses `brew bundle check` before `brew bundle install`.
+- npm globals check installed version before `npm install -g`.
+- `br`/`bv` parse `--version` and skip if it matches `BR_VERSION`/`BV_VERSION`.
+- Claude Code is skipped if `claude --version` already matches `CLAUDE_CODE_VERSION` (or if the target is `stable`/`latest`).
+- The zshrc block is awk-rewritten in place; no duplicates.
+- Config installs always overwrite to a known-good state.
 
 ## Policy
 
 - Domain `env` files are non-secret and committed.
-- Tool auth keys and webhooks remain in `./.secrets/secrets.env` only.
-- Any config change that affects templates or canonical files must be followed by render + checksum update.
+- Any secrets you need belong in `~/.config/carl/secrets.env` on the target machine (CARL does not manage them).
+- Changing a version pin or canonical config: edit the file, commit, run `./bootstrap.sh`.
