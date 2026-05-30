@@ -344,6 +344,9 @@ brew "gnu-sed"
 
 # Editors
 cask "visual-studio-code"
+
+# Containers / VMs (Docker-compatible runtime, native on Apple Silicon)
+cask "orbstack"
 BREWFILE
 }
 
@@ -578,6 +581,7 @@ verify_versions() {
   command -v playwright >/dev/null 2>&1 || die "playwright not found on PATH."
   command -v br         >/dev/null 2>&1 || die "br not found on PATH."
   command -v bv         >/dev/null 2>&1 || die "bv not found on PATH."
+  command -v orb        >/dev/null 2>&1 || die "orb (OrbStack) not found on PATH."
 
   brew --version
   node --version
@@ -589,6 +593,7 @@ verify_versions() {
   playwright --version
   br --version
   bv --version
+  orb version
 }
 
 verify_playwright_browser_cache() {

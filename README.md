@@ -18,8 +18,9 @@ Running `./bootstrap.sh` from a checkout of this repo will, idempotently:
 8. Install pinned npm globals: Codex CLI, Playwright, `@playwright/mcp`.
 9. Install Claude Code via the native installer and link it onto PATH.
 10. Install `br` and `bv` (beads) from GitHub releases, with a `bd → br` shim.
-11. Install Playwright browsers (default: Chromium).
-12. Verify everything is on PATH and write `~/.bootstrap_done` with a versions snapshot.
+11. Install OrbStack (Docker-compatible container/VM runtime, native on Apple Silicon).
+12. Install Playwright browsers (default: Chromium).
+13. Verify everything is on PATH and write `~/.bootstrap_done` with a versions snapshot.
 
 ## Quick start
 
