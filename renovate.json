@@ -1,0 +1,80 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":dependencyDashboard",
+    ":semanticCommits"
+  ],
+  "timezone": "America/New_York",
+  "schedule": ["before 6am on monday"],
+  "labels": ["dependencies"],
+  "prHourlyLimit": 0,
+  "prConcurrentLimit": 0,
+  "packageRules": [
+    {
+      "description": "Auto-merge patch and minor updates when CI passes.",
+      "matchUpdateTypes": ["patch", "minor", "digest", "pin"],
+      "automerge": true,
+      "automergeType": "pr",
+      "platformAutomerge": true
+    },
+    {
+      "description": "Major updates always require manual review.",
+      "matchUpdateTypes": ["major"],
+      "automerge": false,
+      "addLabels": ["major-bump"]
+    }
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "codex/env: CODEX_VERSION -> npm @openai/codex",
+      "fileMatch": ["^codex/env$"],
+      "matchStrings": ["(?m)^CODEX_VERSION=(?<currentValue>\\S+)\\s*$"],
+      "datasourceTemplate": "npm",
+      "depNameTemplate": "@openai/codex"
+    },
+    {
+      "customType": "regex",
+      "description": "claude/env: CLAUDE_CODE_VERSION -> npm @anthropic-ai/claude-code",
+      "fileMatch": ["^claude/env$"],
+      "matchStrings": ["(?m)^CLAUDE_CODE_VERSION=(?<currentValue>\\S+)\\s*$"],
+      "datasourceTemplate": "npm",
+      "depNameTemplate": "@anthropic-ai/claude-code"
+    },
+    {
+      "customType": "regex",
+      "description": "playwright/env: PLAYWRIGHT_VERSION -> npm playwright",
+      "fileMatch": ["^playwright/env$"],
+      "matchStrings": ["(?m)^PLAYWRIGHT_VERSION=(?<currentValue>\\S+)\\s*$"],
+      "datasourceTemplate": "npm",
+      "depNameTemplate": "playwright"
+    },
+    {
+      "customType": "regex",
+      "description": "playwright/env: PLAYWRIGHT_MCP_VERSION -> npm @playwright/mcp",
+      "fileMatch": ["^playwright/env$"],
+      "matchStrings": ["(?m)^PLAYWRIGHT_MCP_VERSION=(?<currentValue>\\S+)\\s*$"],
+      "datasourceTemplate": "npm",
+      "depNameTemplate": "@playwright/mcp"
+    },
+    {
+      "customType": "regex",
+      "description": "br/env: BR_VERSION -> github-releases Dicklesworthstone/beads_rust (strip leading v)",
+      "fileMatch": ["^br/env$"],
+      "matchStrings": ["(?m)^BR_VERSION=(?<currentValue>\\S+)\\s*$"],
+      "datasourceTemplate": "github-releases",
+      "depNameTemplate": "Dicklesworthstone/beads_rust",
+      "extractVersionTemplate": "^v?(?<version>.+)$"
+    },
+    {
+      "customType": "regex",
+      "description": "bv/env: BV_VERSION -> github-releases Dicklesworthstone/beads_viewer (strip leading v)",
+      "fileMatch": ["^bv/env$"],
+      "matchStrings": ["(?m)^BV_VERSION=(?<currentValue>\\S+)\\s*$"],
+      "datasourceTemplate": "github-releases",
+      "depNameTemplate": "Dicklesworthstone/beads_viewer",
+      "extractVersionTemplate": "^v?(?<version>.+)$"
+    }
+  ]
+}

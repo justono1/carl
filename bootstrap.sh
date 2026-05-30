@@ -10,6 +10,7 @@ TMP_BREWFILE=""
 PLAYWRIGHT_BROWSERS="${PLAYWRIGHT_BROWSERS:-chromium}"
 GIT_USER_NAME=""
 GIT_USER_EMAIL=""
+VALIDATE_ONLY=0
 
 log() {
   printf '[bootstrap] %s\n' "$*"
@@ -30,10 +31,15 @@ trap cleanup EXIT
 usage() {
   cat <<'USAGE'
 Usage:
-  bootstrap.sh
+  bootstrap.sh [--validate]
 
 Bootstraps or updates this Mac for use as an AI coding agent runtime.
 Run from a checkout of this repository. Safe to re-run; every step is idempotent.
+
+Flags:
+  --validate            Run validation only (no installs). Checks env-file pins
+                        are exact versions and that committed JSON configs parse.
+                        Safe to run on any OS. Used by CI to gate auto-merge.
 
 Environment overrides:
   PLAYWRIGHT_BROWSERS   Space-delimited browser list (default: chromium).
@@ -42,13 +48,13 @@ USAGE
 }
 
 parse_args() {
-  if [[ $# -eq 0 ]]; then
-    return
-  fi
-  case "$1" in
-    -h|--help) usage; exit 0 ;;
-    *) die "This script takes no positional arguments." ;;
-  esac
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      -h|--help)  usage; exit 0 ;;
+      --validate) VALIDATE_ONLY=1; shift ;;
+      *) die "Unknown argument: $1" ;;
+    esac
+  done
 }
 
 ensure_macos_arm64() {
@@ -627,8 +633,22 @@ playwright_browsers=${PLAYWRIGHT_BROWSERS}
 MARKER
 }
 
+validate_only() {
+  load_domain_env
+  command -v jq >/dev/null 2>&1 || die "jq is required for --validate (apt install jq / brew install jq)."
+  local f
+  for f in claude/settings.json claude/keybindings.json claude/mcp.json; do
+    jq -e . "${REPO_ROOT}/${f}" >/dev/null || die "${f} is not valid JSON."
+  done
+  log "Validation OK"
+}
+
 main() {
   parse_args "$@"
+  if [[ "${VALIDATE_ONLY}" == "1" ]]; then
+    validate_only
+    exit 0
+  fi
   ensure_macos_arm64
   load_domain_env
   resolve_git_identity

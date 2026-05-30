@@ -86,3 +86,27 @@ The `@playwright/mcp` version is single-sourced from `playwright/env`. At instal
 ## Marker file
 
 `~/.bootstrap_done` records the script version, source git ref, Brewfile hash, and every pinned version installed. Useful for inspecting "what did this machine actually get."
+
+## Automated version updates
+
+This repo is set up so [Renovate](https://docs.renovatebot.com/) keeps the version pins current.
+
+- `renovate.json` defines custom regex managers that map each `<TOOL>_VERSION` env variable to its upstream source (npm or GitHub releases).
+- `.github/workflows/validate.yml` runs `bootstrap.sh --validate` on every push/PR to verify pins are exact versions and JSON configs parse.
+- `packageRules` in `renovate.json` auto-merge patch and minor bumps when CI passes; major bumps stay manual and get labeled `major-bump`.
+
+To activate it on a fresh fork:
+
+1. Install the [Renovate GitHub App](https://github.com/apps/renovate) on the repo.
+2. In **Settings → General**, enable "Allow auto-merge".
+3. In **Settings → Branches**, add a branch protection rule for `main` that requires the `validate` status check. Without this, auto-merge has nothing to wait for.
+
+Renovate will open a "Configure Renovate" onboarding PR first, then start opening dependency PRs on the schedule (`before 6am on monday`, by default — change in `renovate.json`).
+
+## Local validation
+
+```bash
+./bootstrap.sh --validate
+```
+
+Runs the same checks CI does. Useful before pushing changes to env files or JSON configs.
