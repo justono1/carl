@@ -342,8 +342,9 @@ brew "rsync"
 brew "tmux"
 brew "gnu-sed"
 
-# Editors
+# Editors and developer GUIs
 cask "visual-studio-code"
+cask "github"
 
 # Containers / VMs (Docker-compatible runtime, native on Apple Silicon)
 cask "orbstack"
@@ -582,6 +583,7 @@ verify_versions() {
   command -v br         >/dev/null 2>&1 || die "br not found on PATH."
   command -v bv         >/dev/null 2>&1 || die "bv not found on PATH."
   command -v orb        >/dev/null 2>&1 || die "orb (OrbStack) not found on PATH."
+  [[ -d "/Applications/GitHub Desktop.app" ]] || die "GitHub Desktop app not found in /Applications."
 
   brew --version
   node --version
