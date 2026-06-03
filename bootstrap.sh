@@ -195,9 +195,32 @@ ensure_xcode_clt() {
     log "Xcode Command Line Tools already installed."
     return
   fi
-  log "Xcode Command Line Tools not found; launching installer."
-  xcode-select --install >/dev/null 2>&1 || true
-  die "Complete the Xcode Command Line Tools install, then rerun this script."
+
+  log "Xcode Command Line Tools not found; installing silently via softwareupdate."
+
+  # softwareupdate only lists the CLT package when this marker file exists.
+  local placeholder="/tmp/.com.apple.dt.CommandLineTools.installondemand.in-progress"
+  touch "${placeholder}"
+
+  local clt_label
+  clt_label="$(softwareupdate -l 2>/dev/null \
+    | awk -F'\\*( |Label: )' '/\* Command Line Tools/ {print $2}' \
+    | sed -E 's/^[[:space:]]+|[[:space:]]+$//g' \
+    | sort -V \
+    | tail -n1)"
+
+  if [[ -z "${clt_label}" ]]; then
+    rm -f "${placeholder}"
+    log "Could not locate a Command Line Tools package via softwareupdate; falling back to GUI installer."
+    xcode-select --install >/dev/null 2>&1 || true
+    die "Complete the Xcode Command Line Tools install, then rerun this script."
+  fi
+
+  log "Installing: ${clt_label}"
+  softwareupdate -i "${clt_label}" --verbose
+  rm -f "${placeholder}"
+
+  xcode-select -p >/dev/null 2>&1 || die "Xcode Command Line Tools install did not complete."
 }
 
 ensure_homebrew() {
@@ -206,7 +229,7 @@ ensure_homebrew() {
     return
   fi
   log "Installing Homebrew."
-  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+  NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 }
 
 load_brew_env() {
