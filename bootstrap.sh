@@ -196,31 +196,51 @@ ensure_xcode_clt() {
     return
   fi
 
-  log "Xcode Command Line Tools not found; installing silently via softwareupdate."
+  log "Xcode Command Line Tools not found; attempting silent install via softwareupdate."
 
-  # softwareupdate only lists the CLT package when this marker file exists.
+  # softwareupdate only lists the CLT package while this marker file exists.
   local placeholder="/tmp/.com.apple.dt.CommandLineTools.installondemand.in-progress"
   touch "${placeholder}"
 
+  # Handle both old ("* Command Line Tools …") and new ("* Label: Command Line Tools …") formats.
   local clt_label
   clt_label="$(softwareupdate -l 2>/dev/null \
-    | awk -F'\\*( |Label: )' '/\* Command Line Tools/ {print $2}' \
-    | sed -E 's/^[[:space:]]+|[[:space:]]+$//g' \
+    | grep -E '^[[:space:]]*\*[[:space:]]*(Label:[[:space:]]*)?Command Line Tools' \
+    | sed -E 's/^[[:space:]]*\*[[:space:]]*(Label:[[:space:]]*)?//; s/[[:space:]]+$//' \
     | sort -V \
     | tail -n1)"
 
-  if [[ -z "${clt_label}" ]]; then
-    rm -f "${placeholder}"
-    log "Could not locate a Command Line Tools package via softwareupdate; falling back to GUI installer."
-    xcode-select --install >/dev/null 2>&1 || true
-    die "Complete the Xcode Command Line Tools install, then rerun this script."
+  if [[ -n "${clt_label}" ]]; then
+    log "Installing: ${clt_label}"
+    if softwareupdate -i "${clt_label}" --verbose --agree-to-license; then
+      rm -f "${placeholder}"
+      xcode-select -p >/dev/null 2>&1 \
+        || die "softwareupdate reported success but xcode-select -p still fails."
+      return
+    fi
+    log "softwareupdate install failed; falling back to GUI installer."
+  else
+    log "softwareupdate did not list a Command Line Tools package; falling back to GUI installer."
   fi
 
-  log "Installing: ${clt_label}"
-  softwareupdate -i "${clt_label}" --verbose
   rm -f "${placeholder}"
 
-  xcode-select -p >/dev/null 2>&1 || die "Xcode Command Line Tools install did not complete."
+  # GUI fallback: trigger the installer and poll instead of bailing.
+  # User clicks "Install" once in the dialog; this script waits and continues.
+  xcode-select --install >/dev/null 2>&1 || true
+  log "A 'Command Line Tools' dialog should appear. Click Install, then leave it running."
+  log "Waiting for installation to finish (this can take 5–15 minutes)..."
+
+  local waited=0
+  local max_wait=3600  # 60 minutes
+  until xcode-select -p >/dev/null 2>&1; do
+    if (( waited >= max_wait )); then
+      die "Timed out waiting for Xcode Command Line Tools to finish installing."
+    fi
+    sleep 10
+    waited=$(( waited + 10 ))
+  done
+  log "Xcode Command Line Tools install completed."
 }
 
 ensure_homebrew() {
