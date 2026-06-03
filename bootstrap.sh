@@ -62,6 +62,19 @@ ensure_macos_arm64() {
   [[ "$(uname -m)" == "arm64" ]] || die "This bootstrap only supports Apple Silicon (arm64)."
 }
 
+ensure_user_is_admin() {
+  [[ "${EUID}" -ne 0 ]] || die "Do not run bootstrap.sh as root or via sudo. Run it as your normal admin user; individual steps will sudo as needed."
+
+  if id -Gn "${USER}" 2>/dev/null | tr ' ' '\n' | grep -qx admin; then
+    return 0
+  fi
+
+  die "User '${USER}' is not a macOS administrator (not a member of the 'admin' group).
+Homebrew, cask installs, and softwareupdate all require sudo, which on macOS is granted via the admin group.
+Fix from another admin account: sudo dscl . -append /Groups/admin GroupMembership ${USER}
+Or via System Settings → Users & Groups → enable 'Allow this user to administer this computer.'"
+}
+
 load_domain_env() {
   local domain_envs=(
     node/env
@@ -742,6 +755,7 @@ main() {
     exit 0
   fi
   ensure_macos_arm64
+  ensure_user_is_admin
   load_domain_env
   resolve_git_identity
   ensure_xcode_clt
