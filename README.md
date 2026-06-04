@@ -26,12 +26,31 @@ Running `./bootstrap.sh` from a checkout of this repo will, idempotently:
 
 ## Quick start
 
+You must be logged in as a user that is a macOS administrator (member of the `admin` group). The bootstrap itself runs as your normal user — it does **not** run as root — but several steps (Homebrew install, cask copies into `/Applications`, `softwareupdate -i`, `chsh`) call `sudo` internally, so the running user has to be able to elevate.
+
+### Option A: One command from a pinned commit (recommended)
+
+Fetches the repo tarball into a temp dir, runs `bootstrap.sh`, and cleans up. Replace `<commit-sha>` with a full 40-char SHA from `main` for a reproducible install:
+
 ```bash
-git clone <this repo> && cd CARL
-./bootstrap.sh
+sudo -v && \
+TMP=$(mktemp -d) && \
+trap 'rm -rf "$TMP"' EXIT && \
+curl -fsSL https://github.com/justono1/carl/tarball/<commit-sha> \
+  | tar -xz -C "$TMP" --strip-components=1 && \
+"$TMP/bootstrap.sh"
 ```
 
-That's it. After it finishes, open a new terminal (or `hash -r`) so the new PATH takes effect.
+`sudo -v` prompts for your password once up front and warms macOS's sudo credential cache (~5 minutes), so the rest of the run is unattended — no scattered password prompts mid-install. It also fails fast if the current user can't sudo at all (i.e., isn't an admin), which is the cleanest way to catch that misconfiguration.
+
+### Option B: From a local checkout
+
+```bash
+git clone https://github.com/justono1/carl.git && cd carl
+sudo -v && ./bootstrap.sh
+```
+
+After it finishes, open a new terminal (or `hash -r`) so the new PATH takes effect.
 
 ## Updating
 
@@ -39,7 +58,7 @@ Edit a version in the relevant `<domain>/env` file, commit it, then on the targe
 
 ```bash
 git pull
-./bootstrap.sh
+sudo -v && ./bootstrap.sh
 ```
 
 The script detects already-satisfied installs and only does the work needed for whatever changed.
